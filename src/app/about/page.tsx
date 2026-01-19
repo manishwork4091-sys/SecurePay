@@ -101,7 +101,7 @@ export default function AboutPage() {
                     <CardTitle className="font-headline">Ethical & Academic Disclaimer</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-muted-foreground">This fraud detection engine is a **simulation** built for the MIS5203 Capstone Project. It demonstrates core principles of rule-based security systems. It is not a real-world system and does not process real payments. The rules are intentionally transparent and simple to serve as an educational tool for discussing concepts like false positives, rule tuning, and explainable AI in a fintech context.</p>
+                    <p className="text-muted-foreground">This fraud detection engine is a **simulation** built for the MIS5203 Capstone Project. It demonstrates core principles of rule-based security systems. It is not a real-world system and does not process real payments. The rules are intentionally transparent and simple to serve as an educational tool for discussing concepts like false positives, rule tuning, and explainable AI in a fintech context. This design prioritises transparency, explainability, and user trust over predictive complexity.</p>
                 </CardContent>
             </Card>
             <div className="text-center pt-6">
