@@ -106,7 +106,7 @@ export default function AdminLayout({
                   <span className="sr-only">Toggle navigation menu</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="flex flex-col">
+              <SheetContent side="left" className="flex flex-col w-[280px]">
                 <SheetHeader>
                   <SheetTitle>
                     <Link
