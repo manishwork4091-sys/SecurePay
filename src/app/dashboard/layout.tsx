@@ -3,9 +3,15 @@
 import { UserAuthGuard } from "@/components/auth-guard";
 import { UserNav } from "@/components/user-nav";
 import { Button } from "@/components/ui/button";
+import {
+    Card,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { Home, Menu, FileText, PlusCircle, Shield, Bell } from "lucide-react";
+import { Home, Menu, FileText, PlusCircle, Shield } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
