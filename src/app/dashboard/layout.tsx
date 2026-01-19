@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { Home, Menu, FileText, PlusCircle, Shield } from "lucide-react";
+import { Home, Menu, FileText, PlusCircle, Shield, UserCog } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
@@ -20,6 +20,7 @@ const navItems = [
   { href: "/dashboard", icon: Home, label: "Dashboard" },
   { href: "/dashboard/transactions", icon: FileText, label: "Transactions" },
   { href: "/dashboard/transactions/new", icon: PlusCircle, label: "New Transaction" },
+  { href: "/dashboard/profile", icon: UserCog, label: "Profile & Security" },
 ];
 
 function NavLink({ item, isMobile = false }: { item: typeof navItems[0]; isMobile?: boolean }) {

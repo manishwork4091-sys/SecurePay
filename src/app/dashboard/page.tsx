@@ -261,9 +261,9 @@ export default function DashboardPage() {
       <footer className="border-t pt-6 mt-6 text-center text-sm text-muted-foreground">
         <p>© SecurePay Sentinel – Academic Project for MIS5203. All data is simulated.</p>
         <p className="mt-2">
-            <Link href="#" className="hover:underline text-primary">How risk detection works</Link>
+            <Link href="/about" className="hover:underline text-primary">How risk detection works</Link>
             <span className="mx-2">|</span>
-            <Link href="#" className="hover:underline text-primary">About this project</Link>
+            <Link href="/about" className="hover:underline text-primary">About this project</Link>
         </p>
       </footer>
     </div>
