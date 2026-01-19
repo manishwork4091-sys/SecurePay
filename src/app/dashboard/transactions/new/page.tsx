@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -14,14 +16,18 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { createTransaction } from "@/lib/actions";
 import { useAuth } from "@/context/auth-context";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info, ListChecks, Terminal, ArrowLeft } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import Link from "next/link";
 
 const formSchema = z.object({
-  amount: z.coerce.number().positive({ message: "Amount must be positive." }),
+  amount: z.coerce.number().min(1, { message: "Amount must be greater than $0." }),
   location: z.string().min(2, { message: "Location is required." }),
   device: z.enum(["Mobile", "Desktop"]),
 });
@@ -66,8 +72,8 @@ export default function NewTransactionPage() {
       });
     } else {
       toast({
-        title: "Transaction Successful",
-        description: `Risk Level: ${result.riskLevel}. Redirecting...`,
+        title: "Transaction Submitted Successfully",
+        description: `Risk Level: ${result.riskLevel}. Redirecting to review...`,
       });
       if (result.riskLevel === 'High') {
         router.push(`/dashboard/alerts/${result.transactionId}`);
@@ -81,7 +87,10 @@ export default function NewTransactionPage() {
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle className="font-headline">Simulate a New Transaction</CardTitle>
-        <CardDescription>Enter the details below to simulate a digital payment. Our system will assess its fraud risk in real-time.</CardDescription>
+        <CardDescription>
+          This interface allows you to create a simulated digital payment. 
+          The transaction will be analyzed in real-time by our fraud detection engine.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -98,6 +107,9 @@ export default function NewTransactionPage() {
                         <Input type="number" step="0.01" placeholder="100.00" className="pl-7" {...field} />
                     </div>
                   </FormControl>
+                  <FormDescription>
+                    The value of the transaction. Higher amounts may increase the risk score.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -107,7 +119,7 @@ export default function NewTransactionPage() {
               name="location"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Location (Country / City)</FormLabel>
+                  <FormLabel>Location</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -118,6 +130,9 @@ export default function NewTransactionPage() {
                       {locations.map(loc => <SelectItem key={loc} value={loc}>{loc}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  <FormDescription>
+                    Geographic location is a key factor for anomaly detection. Certain locations are flagged as high-risk.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -139,16 +154,44 @@ export default function NewTransactionPage() {
                       <SelectItem value="Mobile">Mobile</SelectItem>
                     </SelectContent>
                   </Select>
+                  <FormDescription>
+                    The type of device used can influence the transaction's risk profile.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? "Processing..." : "Submit Transaction"}
-            </Button>
+            
+            <Separator className="my-8" />
+            
+            <Alert>
+              <ListChecks className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Risk Factors Analyzed:</strong> Our engine evaluates transaction amount, location, device type, and simulated historical patterns to generate a risk score.
+              </AlertDescription>
+            </Alert>
+            
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? "Processing..." : "Submit Transaction"}
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href="/dashboard"><ArrowLeft className="mr-2 h-4 w-4"/> Cancel & Return</Link>
+              </Button>
+            </div>
+            
+            <div className="text-xs text-muted-foreground text-center mt-4 space-y-1">
+                <p>After submission, you will be redirected to the transaction history or to a specific fraud alert if the risk is high.</p>
+                <p>A unique Transaction ID and Timestamp will be automatically generated.</p>
+            </div>
           </form>
         </Form>
       </CardContent>
+      <CardFooter>
+          <p className="text-xs text-muted-foreground w-full text-center">
+            No real payments are processed. All data is simulated for academic analysis only.
+          </p>
+      </CardFooter>
     </Card>
   );
 }
