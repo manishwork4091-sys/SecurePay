@@ -1,12 +1,7 @@
-"use client";
-
-import { useAuth } from "@/context/auth-context";
 import { AuditLog } from "@/lib/types";
-import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from 'date-fns';
-import { Loader2 } from "lucide-react";
 
 function AuditLogRow({ log }: { log: AuditLog }) {
   return (
@@ -29,28 +24,13 @@ function AuditLogRow({ log }: { log: AuditLog }) {
 }
 
 export default function AuditLogsPage() {
-  const { user } = useAuth();
-  const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!user) return;
-
-    setLoading(true);
-    const mockLogs: AuditLog[] = [
-        { id: 'log_1', event: 'User Registered', userId: 'user-abc-123', timestamp: new Date(Date.now() - 500000), details: { status: 'Success', ip: '192.168.1.1' }},
-        { id: 'log_2', event: 'Login', userId: 'user-abc-123', timestamp: new Date(Date.now() - 400000), details: { status: 'Success', ip: '192.168.1.1' }},
-        { id: 'log_3', event: 'Transaction Flagged', userId: 'user-xyz-456', timestamp: new Date(Date.now() - 300000), details: { transactionId: 'tx_3', riskScore: 90 }},
+    const logs: AuditLog[] = [
+        { id: 'log_1', event: 'User Registered', userId: 'user@example.com', timestamp: new Date(Date.now() - 500000), details: { status: 'Success', ip: '192.168.1.1' }},
+        { id: 'log_2', event: 'Login', userId: 'user@example.com', timestamp: new Date(Date.now() - 400000), details: { status: 'Success', ip: '192.168.1.1' }},
+        { id: 'log_3', event: 'Transaction Flagged', userId: 'user@example.com', timestamp: new Date(Date.now() - 300000), details: { transactionId: 'tx_3', riskScore: 90 }},
         { id: 'log_4', event: 'Failed Login', userId: 'bad@actor.com', timestamp: new Date(Date.now() - 200000), details: { error: 'Invalid email or password.' }},
         { id: 'log_5', event: 'Admin Action', userId: 'admin@sentinel.com', timestamp: new Date(Date.now() - 100000), details: { action: 'Updated user role' }},
-    ];
-    
-    setTimeout(() => {
-        setLogs(mockLogs);
-        setLoading(false);
-    }, 500);
-
-  }, [user]);
+    ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
   return (
     <Card>
@@ -71,14 +51,7 @@ export default function AuditLogsPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {loading ? (
-                            <TableRow>
-                                <TableCell colSpan={4} className="h-48 text-center">
-                                    <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-                                    <p className="mt-2 text-muted-foreground">Loading audit logs...</p>
-                                </TableCell>
-                            </TableRow>
-                        ) : logs.length > 0 ? (
+                        {logs.length > 0 ? (
                             logs.map(log => <AuditLogRow key={log.id} log={log} />)
                         ) : (
                             <TableRow>

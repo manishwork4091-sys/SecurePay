@@ -4,59 +4,74 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { AlertCircle, FileText, CheckCircle, ShieldQuestion } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
-import { explainFraudRisk } from "@/ai/flows/explainable-fraud-risk";
 import { Separator } from "@/components/ui/separator";
 
-async function getTransaction(id: string): Promise<Transaction | null> {
-    // For static site, we'll return a mock transaction if the ID matches a high-risk one we know about.
-    const mockHighRiskTransactions: { [id: string]: Transaction } = {
-        'tx_3': {
-            id: 'tx_3',
-            userId: 'mock-user-id',
-            amount: 1200,
-            location: 'Pyongyang, North Korea',
-            device: 'Desktop',
-            createdAt: new Date(Date.now() - 272800000),
-            riskScore: 90,
-            riskLevel: 'High',
-            flaggingReasons: ["Transaction amount ($1200.00) is unusually high.", "Transaction location (Pyongyang, North Korea) is considered high-risk."]
-        }
-    };
-    
-    if (id in mockHighRiskTransactions) {
-        return mockHighRiskTransactions[id];
+// In a real app, this would fetch from a database.
+// For this static demo, we define a set of mock high-risk transactions.
+const mockHighRiskTransactions: { [id: string]: Transaction } = {
+    'tx_3': {
+        id: 'tx_3',
+        userId: 'mock-user-id',
+        amount: 1200,
+        location: 'Pyongyang, North Korea',
+        device: 'Desktop',
+        createdAt: new Date(Date.now() - 272800000),
+        riskScore: 90,
+        riskLevel: 'High',
+        flaggingReasons: ["Transaction amount ($1200.00) is unusually high.", "Transaction location (Pyongyang, North Korea) is considered high-risk."]
+    },
+    'tx_6': {
+        id: 'tx_6',
+        userId: 'mock-user-id',
+        amount: 950.00,
+        location: 'Bogota, Colombia',
+        device: 'Mobile',
+        createdAt: new Date(Date.now() - 572800000),
+        riskScore: 85,
+        riskLevel: 'High',
+        flaggingReasons: ["Transaction amount ($950.00) is high for this user profile.", "Transaction originates from a location with a history of fraud."]
     }
-    
-    // Also handle transactions created from the form
-    if (id.startsWith('mock-tx')) {
-         return {
+};
+
+// This function simulates fetching a transaction and its AI-generated explanation.
+function getAlertDetails(id: string): { transaction: Transaction; explanation: string } | null {
+    let transaction: Transaction | undefined = mockHighRiskTransactions[id];
+
+    // Also handle transactions created dynamically from the form for demo purposes
+    if (!transaction && id.startsWith('mock-tx')) {
+         transaction = {
             id,
-            userId: 'mock-user-id',
+            userId: 'user@example.com',
             amount: 1500.00,
             location: 'Pyongyang, North Korea',
             device: 'Desktop',
             createdAt: new Date(),
-            riskScore: 70,
+            riskScore: 95,
             riskLevel: 'High',
-            flaggingReasons: ["Transaction amount ($1500.00) is unusually high.", "Transaction location (Pyongyang, North Korea) is considered high-risk."],
-        }
+            flaggingReasons: ["Transaction amount ($1500.00) is unusually high.", "Transaction location (Pyongyang, North Korea) is a sanctioned country."],
+        };
+    }
+    
+    if (!transaction || transaction.riskLevel !== 'High') {
+        return null;
     }
 
-    return null;
+    // Static AI-powered explanation, tailored to the transaction
+    const explanation = `This transaction was flagged as high-risk primarily due to its origin and amount. The transaction of $${transaction.amount.toFixed(2)} from ${transaction.location} triggered two critical rules in our fraud detection engine.
+
+First, the location is on our high-risk country list, which automatically elevates the risk score significantly. Second, the transaction amount exceeds the user's typical spending pattern by a large margin. The combination of these factors results in a high-risk score of ${transaction.riskScore}, indicating a strong likelihood of fraudulent activity. For user protection, transactions like this are automatically held for manual review.`;
+
+    return { transaction, explanation };
 }
 
-export default async function AlertPage({ params }: { params: { id: string } }) {
-    const transaction = await getTransaction(params.id);
+export default function AlertPage({ params }: { params: { id: string } }) {
+    const alertDetails = getAlertDetails(params.id);
 
-    if (!transaction || transaction.riskLevel !== 'High') {
+    if (!alertDetails) {
         notFound();
     }
 
-    const aiExplanation = await explainFraudRisk({
-        transactionDetails: `A transaction of $${transaction.amount.toFixed(2)} from ${transaction.location} on a ${transaction.device} device.`,
-        riskScore: transaction.riskScore,
-        flaggingReasons: transaction.flaggingReasons || ["General security concern"],
-    });
+    const { transaction, explanation } = alertDetails;
 
     const getBadgeVariant = (riskLevel: Transaction['riskLevel']) => {
         switch (riskLevel) {
@@ -64,7 +79,7 @@ export default async function AlertPage({ params }: { params: { id: string } }) 
           case 'Medium': return 'secondary';
           default: return 'outline';
         }
-      };
+    };
 
     return (
         <div className="max-w-4xl mx-auto">
@@ -126,7 +141,7 @@ export default async function AlertPage({ params }: { params: { id: string } }) 
                         </CardHeader>
                         <CardContent>
                             <p className="whitespace-pre-wrap leading-relaxed">
-                                {aiExplanation.explanation}
+                                {explanation}
                             </p>
                         </CardContent>
                     </Card>

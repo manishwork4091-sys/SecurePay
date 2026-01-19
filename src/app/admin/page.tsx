@@ -1,8 +1,4 @@
-"use client";
-
-import { useAuth } from "@/context/auth-context";
 import { Transaction } from "@/lib/types";
-import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,7 +10,7 @@ function HighRiskTransactionRow({ tx }: { tx: Transaction }) {
   return (
     <TableRow>
       <TableCell>
-        <div className="font-medium">{tx.userId.substring(0, 8)}...</div>
+        <div className="font-medium">{tx.userId.substring(0, 15)}...</div>
         <div className="hidden text-sm text-muted-foreground md:inline">
           {format(tx.createdAt, 'PP')}
         </div>
@@ -31,30 +27,12 @@ function HighRiskTransactionRow({ tx }: { tx: Transaction }) {
 }
 
 export default function AdminDashboardPage() {
-  const { user } = useAuth();
-  const [stats, setStats] = useState({ totalTx: 0, totalUsers: 0, fraudRate: 0 });
-  const [highRiskTransactions, setHighRiskTransactions] = useState<Transaction[]>([]);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const mockTransactions: Transaction[] = [
-        { id: 'tx_1', userId: 'mock-user-id-1', amount: 150.55, location: 'New York, USA', device: 'Desktop', createdAt: new Date(Date.now() - 80000000), riskScore: 10, riskLevel: 'Low' },
-        { id: 'tx_2', userId: 'mock-user-id-2', amount: 800, location: 'London, UK', device: 'Mobile', createdAt: new Date(Date.now() - 186400000), riskScore: 50, riskLevel: 'Medium' },
-        { id: 'tx_3', userId: 'mock-user-id-3', amount: 1200, location: 'Pyongyang, North Korea', device: 'Desktop', createdAt: new Date(Date.now() - 272800000), riskScore: 90, riskLevel: 'High', flaggingReasons: ['High risk location'] },
-    ];
-    const highRiskTx = mockTransactions.filter(tx => tx.riskLevel === 'High');
-    const totalTx = 125;
-
-    setStats({
-        totalTx: totalTx,
-        totalUsers: 42,
-        fraudRate: (highRiskTx.length / totalTx) * 100,
-    });
-
-    setHighRiskTransactions(highRiskTx);
-
-  }, [user]);
+  const stats = { totalTx: 1258, totalUsers: 42, fraudRate: 0.8 };
+  const mockTransactions: Transaction[] = [
+      { id: 'tx_3', userId: 'user@example.com', amount: 1200, location: 'Pyongyang, North Korea', device: 'Desktop', createdAt: new Date(Date.now() - 272800000), riskScore: 90, riskLevel: 'High', flaggingReasons: ['High risk location'] },
+      { id: 'tx_6', userId: 'user@example.com', amount: 950.00, location: 'Bogota, Colombia', device: 'Mobile', createdAt: new Date(Date.now() - 572800000), riskScore: 85, riskLevel: 'High' },
+  ];
+  const highRiskTransactions = mockTransactions.filter(tx => tx.riskLevel === 'High');
 
   return (
     <>
@@ -65,7 +43,7 @@ export default function AdminDashboardPage() {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-headline">{stats.totalTx}</div>
+            <div className="text-2xl font-bold font-headline">{stats.totalTx.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">Across all users</p>
           </CardContent>
         </Card>
@@ -94,7 +72,7 @@ export default function AdminDashboardPage() {
         <CardHeader className="flex flex-row items-center">
             <div className="grid gap-2">
                 <CardTitle className="font-headline">Recent High-Risk Transactions</CardTitle>
-                <CardDescription>A real-time feed of transactions flagged as high-risk.</CardDescription>
+                <CardDescription>A feed of transactions automatically flagged as high-risk by the system.</CardDescription>
             </div>
             <Button asChild size="sm" className="ml-auto gap-1">
                 <Link href="/dashboard/transactions">
@@ -107,7 +85,7 @@ export default function AdminDashboardPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User ID & Date</TableHead>
+                <TableHead>User & Date</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
                 <TableHead className="hidden md:table-cell text-right">Risk Score</TableHead>
                 <TableHead className="text-right">Action</TableHead>
