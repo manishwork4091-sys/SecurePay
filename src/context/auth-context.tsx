@@ -33,14 +33,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (loading) return;
 
-    if (user) {
-      const isAuthPage = pathname === '/login' || pathname === '/register';
-      const isLandingPage = pathname === '/';
+    const isAuthPage = pathname === '/login' || pathname === '/register';
 
-      if (user.role === 'admin' && !pathname.startsWith('/admin')) {
-        router.replace('/admin');
-      } else if (user.role === 'user' && (pathname.startsWith('/admin') || isAuthPage || isLandingPage)) {
-        router.replace('/dashboard');
+    if (user) {
+      if (user.role === 'admin') {
+        if (pathname.startsWith('/dashboard') || isAuthPage) {
+          router.replace('/admin');
+        }
+      } else if (user.role === 'user') {
+        if (pathname.startsWith('/admin') || isAuthPage) {
+          router.replace('/dashboard');
+        }
       }
     } else {
         const isProtectedRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/admin');
