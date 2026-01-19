@@ -26,7 +26,7 @@ export async function registerUser(values: z.infer<typeof registerSchema>) {
     
     await sendEmailVerification(user);
     await addDoc(collection(db, "auditLogs"), {
-        event: "Login",
+        event: "User Registered",
         userId: user.uid,
         timestamp: serverTimestamp(),
         details: { ip: "unknown", userAgent: "unknown", status: "Success" }

@@ -38,9 +38,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           // Role-based redirection logic
           const isAdminRoute = pathname.startsWith('/admin');
+          const isAuthPage = pathname === '/login' || pathname === '/register';
+          const isLandingPage = pathname === '/';
+
           if (userProfile.role === 'admin' && !isAdminRoute) {
             router.replace('/admin');
-          } else if (userProfile.role === 'user' && (pathname.startsWith('/admin') || pathname === '/login' || pathname === '/register')) {
+          } else if (userProfile.role === 'user' && (pathname.startsWith('/admin') || isAuthPage || isLandingPage)) {
             router.replace('/dashboard');
           }
 

@@ -24,7 +24,7 @@ export interface Transaction {
 
 export interface AuditLog {
   id: string;
-  event: 'Login' | 'Failed Login' | 'Transaction Flagged' | 'Admin Action';
+  event: 'Login' | 'Failed Login' | 'Transaction Flagged' | 'Admin Action' | 'User Registered';
   userId: string;
   timestamp: Timestamp;
   details: Record<string, any>;
