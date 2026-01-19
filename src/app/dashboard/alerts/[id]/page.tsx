@@ -1,5 +1,3 @@
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { Transaction } from "@/lib/types";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -10,12 +8,40 @@ import { explainFraudRisk } from "@/ai/flows/explainable-fraud-risk";
 import { Separator } from "@/components/ui/separator";
 
 async function getTransaction(id: string): Promise<Transaction | null> {
-    const docRef = doc(db, "transactions", id);
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() } as Transaction;
+    // For static site, we'll return a mock transaction if the ID matches a high-risk one we know about.
+    const mockHighRiskTransactions: { [id: string]: Transaction } = {
+        'tx_3': {
+            id: 'tx_3',
+            userId: 'mock-user-id',
+            amount: 1200,
+            location: 'Pyongyang, North Korea',
+            device: 'Desktop',
+            createdAt: new Date(Date.now() - 272800000),
+            riskScore: 90,
+            riskLevel: 'High',
+            flaggingReasons: ["Transaction amount ($1200.00) is unusually high.", "Transaction location (Pyongyang, North Korea) is considered high-risk."]
+        }
+    };
+    
+    if (id in mockHighRiskTransactions) {
+        return mockHighRiskTransactions[id];
     }
+    
+    // Also handle transactions created from the form
+    if (id.startsWith('mock-tx')) {
+         return {
+            id,
+            userId: 'mock-user-id',
+            amount: 1500.00,
+            location: 'Pyongyang, North Korea',
+            device: 'Desktop',
+            createdAt: new Date(),
+            riskScore: 70,
+            riskLevel: 'High',
+            flaggingReasons: ["Transaction amount ($1500.00) is unusually high.", "Transaction location (Pyongyang, North Korea) is considered high-risk."],
+        }
+    }
+
     return null;
 }
 
@@ -60,7 +86,7 @@ export default async function AlertPage({ params }: { params: { id: string } }) 
                         </div>
                         <div className="flex items-center gap-3">
                             <span className="font-semibold text-muted-foreground">Date:</span>
-                            <span>{format(transaction.createdAt.toDate(), 'PPpp')}</span>
+                            <span>{format(transaction.createdAt, 'PPpp')}</span>
                         </div>
                         <div className="flex items-center gap-3">
                             <span className="font-semibold text-muted-foreground">Location:</span>

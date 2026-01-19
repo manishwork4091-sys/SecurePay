@@ -1,10 +1,8 @@
-import { Timestamp } from "firebase/firestore";
-
 export interface UserProfile {
   uid: string;
   email: string;
   role: 'user' | 'admin';
-  createdAt: Timestamp;
+  createdAt: Date;
   mfaEnabled: boolean;
 }
 
@@ -16,7 +14,7 @@ export interface Transaction {
   amount: number;
   location: string;
   device: 'Mobile' | 'Desktop';
-  createdAt: Timestamp;
+  createdAt: Date;
   riskScore: number;
   riskLevel: RiskLevel;
   flaggingReasons?: string[];
@@ -26,6 +24,6 @@ export interface AuditLog {
   id: string;
   event: 'Login' | 'Failed Login' | 'Transaction Flagged' | 'Admin Action' | 'User Registered';
   userId: string;
-  timestamp: Timestamp;
+  timestamp: Date;
   details: Record<string, any>;
 }

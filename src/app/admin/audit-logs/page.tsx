@@ -2,8 +2,6 @@
 
 import { useAuth } from "@/context/auth-context";
 import { AuditLog } from "@/lib/types";
-import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,9 +12,9 @@ function AuditLogRow({ log }: { log: AuditLog }) {
   return (
     <TableRow>
       <TableCell>
-        <div className="font-medium">{format(log.timestamp.toDate(), 'PP')}</div>
+        <div className="font-medium">{format(log.timestamp, 'PP')}</div>
         <div className="hidden text-sm text-muted-foreground md:inline">
-          {format(log.timestamp.toDate(), 'p')}
+          {format(log.timestamp, 'p')}
         </div>
       </TableCell>
       <TableCell>{log.event}</TableCell>
@@ -39,18 +37,19 @@ export default function AuditLogsPage() {
     if (!user) return;
 
     setLoading(true);
-    const q = query(
-      collection(db, "auditLogs"),
-      orderBy("timestamp", "desc")
-    );
+    const mockLogs: AuditLog[] = [
+        { id: 'log_1', event: 'User Registered', userId: 'user-abc-123', timestamp: new Date(Date.now() - 500000), details: { status: 'Success', ip: '192.168.1.1' }},
+        { id: 'log_2', event: 'Login', userId: 'user-abc-123', timestamp: new Date(Date.now() - 400000), details: { status: 'Success', ip: '192.168.1.1' }},
+        { id: 'log_3', event: 'Transaction Flagged', userId: 'user-xyz-456', timestamp: new Date(Date.now() - 300000), details: { transactionId: 'tx_3', riskScore: 90 }},
+        { id: 'log_4', event: 'Failed Login', userId: 'bad@actor.com', timestamp: new Date(Date.now() - 200000), details: { error: 'Invalid email or password.' }},
+        { id: 'log_5', event: 'Admin Action', userId: 'admin@sentinel.com', timestamp: new Date(Date.now() - 100000), details: { action: 'Updated user role' }},
+    ];
+    
+    setTimeout(() => {
+        setLogs(mockLogs);
+        setLoading(false);
+    }, 500);
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const logsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AuditLog));
-      setLogs(logsData);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
   }, [user]);
 
   return (

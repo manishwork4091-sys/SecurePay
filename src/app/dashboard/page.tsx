@@ -2,8 +2,6 @@
 
 import { useAuth } from "@/context/auth-context";
 import { Transaction } from "@/lib/types";
-import { collection, query, where, orderBy, limit, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,7 +25,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
       <TableCell>
         <div className="font-medium">{tx.location}</div>
         <div className="hidden text-sm text-muted-foreground md:inline">
-          {format(tx.createdAt.toDate(), 'PPpp')}
+          {format(tx.createdAt, 'PPpp')}
         </div>
       </TableCell>
       <TableCell className="text-right">${tx.amount.toFixed(2)}</TableCell>
@@ -46,35 +44,17 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!user) return;
 
-    // Fetch recent transactions
-    const txQuery = query(
-      collection(db, "transactions"),
-      where("userId", "==", user.uid),
-      orderBy("createdAt", "desc"),
-      limit(5)
-    );
-    const unsubscribeTx = onSnapshot(txQuery, (snapshot) => {
-      const txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction));
-      setRecentTransactions(txs);
-    });
+    const mockTransactions: Transaction[] = [
+        { id: 'tx_1', userId: 'mock-user-id', amount: 150.55, location: 'New York, USA', device: 'Desktop', createdAt: new Date(Date.now() - 80000000), riskScore: 10, riskLevel: 'Low' },
+        { id: 'tx_2', userId: 'mock-user-id', amount: 800, location: 'London, UK', device: 'Mobile', createdAt: new Date(Date.now() - 186400000), riskScore: 50, riskLevel: 'Medium' },
+        { id: 'tx_3', userId: 'mock-user-id', amount: 1200, location: 'Pyongyang, North Korea', device: 'Desktop', createdAt: new Date(Date.now() - 272800000), riskScore: 90, riskLevel: 'High', flaggingReasons: ['High risk location'] },
+        { id: 'tx_4', userId: 'mock-user-id', amount: 25.00, location: 'Sydney, Australia', device: 'Mobile', createdAt: new Date(Date.now() - 372800000), riskScore: 5, riskLevel: 'Low' },
+        { id: 'tx_5', userId: 'mock-user-id', amount: 450.00, location: 'Paris, France', device: 'Desktop', createdAt: new Date(Date.now() - 472800000), riskScore: 20, riskLevel: 'Low' },
+    ];
+    
+    setRecentTransactions(mockTransactions.slice(0, 5));
+    setHighRiskAlerts(mockTransactions.filter(tx => tx.riskLevel === 'High').slice(0, 3));
 
-    // Fetch high-risk alerts
-    const alertQuery = query(
-      collection(db, "transactions"),
-      where("userId", "==", user.uid),
-      where("riskLevel", "==", "High"),
-      orderBy("createdAt", "desc"),
-      limit(3)
-    );
-    const unsubscribeAlerts = onSnapshot(alertQuery, (snapshot) => {
-      const alerts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction));
-      setHighRiskAlerts(alerts);
-    });
-
-    return () => {
-      unsubscribeTx();
-      unsubscribeAlerts();
-    };
   }, [user]);
   
   return (
@@ -167,7 +147,7 @@ export default function DashboardPage() {
                             ${alert.amount.toFixed(2)} transaction from {alert.location}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                            {format(alert.createdAt.toDate(), 'PP')} - Risk Score: {alert.riskScore}
+                            {format(alert.createdAt, 'PP')} - Risk Score: {alert.riskScore}
                         </p>
                     </div>
                     <Button asChild size="sm" className="ml-auto">

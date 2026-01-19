@@ -2,8 +2,6 @@
 
 import { useAuth } from "@/context/auth-context";
 import { Transaction, RiskLevel } from "@/lib/types";
-import { collection, query, where, orderBy, onSnapshot, Query } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -27,9 +25,9 @@ function TransactionRow({ tx }: { tx: Transaction }) {
   return (
     <TableRow>
       <TableCell>
-        <div className="font-medium">{format(tx.createdAt.toDate(), 'PP')}</div>
+        <div className="font-medium">{format(tx.createdAt, 'PP')}</div>
         <div className="hidden text-sm text-muted-foreground md:inline">
-          {format(tx.createdAt.toDate(), 'p')}
+          {format(tx.createdAt, 'p')}
         </div>
       </TableCell>
       <TableCell>
@@ -61,23 +59,22 @@ export default function TransactionsPage() {
     if (!user) return;
 
     setLoading(true);
-    let q: Query = query(
-      collection(db, "transactions"),
-      where("userId", "==", user.uid),
-      orderBy("createdAt", "desc")
-    );
+    const mockTransactions: Transaction[] = [
+        { id: 'tx_1', userId: 'mock-user-id', amount: 150.55, location: 'New York, USA', device: 'Desktop', createdAt: new Date(Date.now() - 80000000), riskScore: 10, riskLevel: 'Low' },
+        { id: 'tx_2', userId: 'mock-user-id', amount: 800, location: 'London, UK', device: 'Mobile', createdAt: new Date(Date.now() - 186400000), riskScore: 50, riskLevel: 'Medium' },
+        { id: 'tx_3', userId: 'mock-user-id', amount: 1200, location: 'Pyongyang, North Korea', device: 'Desktop', createdAt: new Date(Date.now() - 272800000), riskScore: 90, riskLevel: 'High', flaggingReasons: ['High risk location'] },
+        { id: 'tx_4', userId: 'mock-user-id', amount: 25.00, location: 'Sydney, Australia', device: 'Mobile', createdAt: new Date(Date.now() - 372800000), riskScore: 5, riskLevel: 'Low' },
+    ];
+    
+    setTimeout(() => {
+        if (filter === 'All') {
+            setTransactions(mockTransactions);
+        } else {
+            setTransactions(mockTransactions.filter(tx => tx.riskLevel === filter));
+        }
+        setLoading(false);
+    }, 500);
 
-    if (filter !== 'All') {
-      q = query(q, where("riskLevel", "==", filter));
-    }
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction));
-      setTransactions(txs);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
   }, [user, filter]);
 
   return (

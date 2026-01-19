@@ -1,16 +1,13 @@
 "use client";
 
 import { useAuth } from "@/context/auth-context";
-import { Transaction, UserProfile } from "@/lib/types";
-import { collection, query, where, orderBy, limit, onSnapshot, getCountFromServer } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { Transaction } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Activity, Users, DollarSign, ShieldAlert, ArrowUpRight } from "lucide-react";
+import { Activity, Users, ShieldAlert, ArrowUpRight } from "lucide-react";
 import { format } from 'date-fns';
 
 function HighRiskTransactionRow({ tx }: { tx: Transaction }) {
@@ -19,7 +16,7 @@ function HighRiskTransactionRow({ tx }: { tx: Transaction }) {
       <TableCell>
         <div className="font-medium">{tx.userId.substring(0, 8)}...</div>
         <div className="hidden text-sm text-muted-foreground md:inline">
-          {format(tx.createdAt.toDate(), 'PP')}
+          {format(tx.createdAt, 'PP')}
         </div>
       </TableCell>
       <TableCell className="text-right">${tx.amount.toFixed(2)}</TableCell>
@@ -41,42 +38,22 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (!user) return;
 
-    const fetchStats = async () => {
-        const txColl = collection(db, "transactions");
-        const usersColl = collection(db, "users");
-        const highRiskTxQuery = query(txColl, where("riskLevel", "==", "High"));
+    const mockTransactions: Transaction[] = [
+        { id: 'tx_1', userId: 'mock-user-id-1', amount: 150.55, location: 'New York, USA', device: 'Desktop', createdAt: new Date(Date.now() - 80000000), riskScore: 10, riskLevel: 'Low' },
+        { id: 'tx_2', userId: 'mock-user-id-2', amount: 800, location: 'London, UK', device: 'Mobile', createdAt: new Date(Date.now() - 186400000), riskScore: 50, riskLevel: 'Medium' },
+        { id: 'tx_3', userId: 'mock-user-id-3', amount: 1200, location: 'Pyongyang, North Korea', device: 'Desktop', createdAt: new Date(Date.now() - 272800000), riskScore: 90, riskLevel: 'High', flaggingReasons: ['High risk location'] },
+    ];
+    const highRiskTx = mockTransactions.filter(tx => tx.riskLevel === 'High');
+    const totalTx = 125;
 
-        const txCountSnapshot = await getCountFromServer(txColl);
-        const usersCountSnapshot = await getCountFromServer(usersColl);
-        const highRiskCountSnapshot = await getCountFromServer(highRiskTxQuery);
-        
-        const totalTx = txCountSnapshot.data().count;
-        const highRiskTx = highRiskCountSnapshot.data().count;
-
-        setStats({
-            totalTx: totalTx,
-            totalUsers: usersCountSnapshot.data().count,
-            fraudRate: totalTx > 0 ? (highRiskTx / totalTx) * 100 : 0,
-        });
-    };
-
-    fetchStats();
-
-    // Listen for new high-risk transactions
-    const q = query(
-      collection(db, "transactions"),
-      where("riskLevel", "==", "High"),
-      orderBy("createdAt", "desc"),
-      limit(5)
-    );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction));
-      setHighRiskTransactions(txs);
-      fetchStats(); // Re-fetch stats when a new high-risk transaction appears
+    setStats({
+        totalTx: totalTx,
+        totalUsers: 42,
+        fraudRate: (highRiskTx.length / totalTx) * 100,
     });
 
+    setHighRiskTransactions(highRiskTx);
 
-    return () => unsubscribe();
   }, [user]);
 
   return (
