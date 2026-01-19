@@ -1,10 +1,12 @@
 import { Transaction } from "@/lib/types";
 import { notFound } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { AlertCircle, FileText, CheckCircle, ShieldQuestion } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { AlertCircle, FileText, CheckCircle, ShieldQuestion, ArrowLeft, Dot } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 // In a real app, this would fetch from a database.
 // For this static demo, we define a set of mock high-risk transactions.
@@ -73,14 +75,6 @@ export default function AlertPage({ params }: { params: { id: string } }) {
 
     const { transaction, explanation } = alertDetails;
 
-    const getBadgeVariant = (riskLevel: Transaction['riskLevel']) => {
-        switch (riskLevel) {
-          case 'High': return 'destructive';
-          case 'Medium': return 'secondary';
-          default: return 'outline';
-        }
-    };
-
     return (
         <div className="max-w-4xl mx-auto">
             <Card>
@@ -94,29 +88,35 @@ export default function AlertPage({ params }: { params: { id: string } }) {
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="grid md:grid-cols-3 gap-4 text-sm">
+                    <div className="grid md:grid-cols-3 gap-x-4 gap-y-2 text-sm">
                         <div className="flex items-center gap-3">
-                            <span className="font-semibold text-muted-foreground">Amount:</span>
+                            <span className="font-semibold text-muted-foreground w-20">Amount:</span>
                             <span className="font-mono text-lg">${transaction.amount.toFixed(2)}</span>
                         </div>
                         <div className="flex items-center gap-3">
-                            <span className="font-semibold text-muted-foreground">Date:</span>
+                            <span className="font-semibold text-muted-foreground w-20">Date:</span>
                             <span>{format(transaction.createdAt, 'PPpp')}</span>
                         </div>
                         <div className="flex items-center gap-3">
-                            <span className="font-semibold text-muted-foreground">Location:</span>
+                            <span className="font-semibold text-muted-foreground w-20">Location:</span>
                             <span>{transaction.location}</span>
                         </div>
                         <div className="flex items-center gap-3">
-                            <span className="font-semibold text-muted-foreground">Device:</span>
+                            <span className="font-semibold text-muted-foreground w-20">Device:</span>
                             <span>{transaction.device}</span>
                         </div>
-                        <div className="flex items-center gap-3 md:col-span-2">
-                            <span className="font-semibold text-muted-foreground">Risk Score:</span>
-                            <Badge variant={getBadgeVariant(transaction.riskLevel)} className="text-lg px-3 py-1">
-                                {transaction.riskScore} / 100 ({transaction.riskLevel})
-                            </Badge>
+                         <div className="flex items-center gap-3">
+                            <span className="font-semibold text-muted-foreground w-20">Status:</span>
+                            <Badge variant="destructive">Pending Review</Badge>
                         </div>
+                        <div className="flex items-center gap-3">
+                            <span className="font-semibold text-muted-foreground w-20">Risk Score:</span>
+                            <span className="font-mono text-lg">{transaction.riskScore} / 100</span>
+                        </div>
+                    </div>
+                    <div className="text-sm">
+                        <span className="font-semibold text-muted-foreground w-20">Transaction ID: </span>
+                        <span className="font-mono text-xs">{transaction.id}</span>
                     </div>
                     
                     <Separator />
@@ -149,13 +149,21 @@ export default function AlertPage({ params }: { params: { id: string } }) {
                     <Separator />
 
                      <div>
-                        <h3 className="font-headline text-lg mb-2 flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-600"/> What This Means For You</h3>
+                        <h3 className="font-headline text-lg mb-2 flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-600"/> Important Notice</h3>
                         <p className="text-muted-foreground">
-                            In a real-world scenario, this would mean your transaction is temporarily on hold pending review. You might be contacted by your bank to verify your identity. Since this is a simulation, no further action is needed. This event has been logged for academic review.
+                            In a real-world scenario, a high-risk flag means your transaction is temporarily on hold. You might be contacted to verify your identity. Since this is a simulation, no funds are moved and no further action is needed. Flagging does not confirm fraud; it is a protective measure.
                         </p>
                     </div>
 
                 </CardContent>
+                <CardFooter className="flex-col items-start gap-4 border-t pt-6">
+                    <Button asChild variant="outline">
+                        <Link href="/dashboard/transactions"><ArrowLeft className="mr-2 h-4 w-4"/>Back to Transaction History</Link>
+                    </Button>
+                    <p className="text-center text-sm leading-loose text-muted-foreground w-full">
+                        SecurePay Sentinel · Academic Project for MIS5203 · All data is simulated.
+                    </p>
+                </CardFooter>
             </Card>
         </div>
     )
