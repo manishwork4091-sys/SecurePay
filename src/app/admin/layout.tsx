@@ -9,7 +9,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { LayoutDashboard, Menu, FileText, Shield } from "lucide-react";
 import Link from "next/link";
@@ -90,14 +90,18 @@ export default function AdminLayout({
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="flex flex-col">
-                <nav className="grid gap-2 text-lg font-medium">
-                  <Link
-                    href="/admin"
-                    className="flex items-center gap-2 text-lg font-semibold font-headline mb-4"
-                  >
-                    <Shield className="h-6 w-6 text-primary" />
-                    <span className="">Admin Panel</span>
-                  </Link>
+                <SheetHeader>
+                  <SheetTitle>
+                    <Link
+                      href="/admin"
+                      className="flex items-center gap-2 text-lg font-semibold font-headline"
+                    >
+                      <Shield className="h-6 w-6 text-primary" />
+                      <span className="">Admin Panel</span>
+                    </Link>
+                  </SheetTitle>
+                </SheetHeader>
+                <nav className="grid gap-2 text-lg font-medium mt-4">
                   {navItems.map((item) => (
                     <NavLink key={item.href} item={item} isMobile />
                   ))}
