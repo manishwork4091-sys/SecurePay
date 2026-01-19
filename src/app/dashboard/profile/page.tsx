@@ -1,12 +1,13 @@
 "use client";
 
 import { useAuth } from "@/context/auth-context";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { User, Mail, Shield, Calendar, KeyRound, CheckCircle } from "lucide-react";
-import { format } from "date-fns";
+import { User, Mail, Shield, Calendar, KeyRound, CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { format, subDays } from "date-fns";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function ProfilePage() {
     const { user } = useAuth();
@@ -89,7 +90,33 @@ export default function ProfilePage() {
                             </div>
                         </div>
                     </div>
+                     <Separator />
+                     <div>
+                        <h3 className="text-lg font-medium font-headline mb-4">Recent Security Activity</h3>
+                        <div className="space-y-3 text-sm">
+                           <div className="flex items-center gap-3">
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                <p><span className="text-muted-foreground">Last password update:</span> {format(subDays(new Date(), 30), 'PP')}</p>
+                           </div>
+                           <div className="flex items-center gap-3">
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                <p><span className="text-muted-foreground">Last MFA verification:</span> {format(subDays(new Date(), 2), 'PP')}</p>
+                           </div>
+                        </div>
+                    </div>
+                     <Separator />
+                    <Alert variant="default" className="mt-6">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription>
+                            All security settings and activity logs are simulated for academic purposes only.
+                        </AlertDescription>
+                    </Alert>
                 </CardContent>
+                <CardFooter>
+                     <p className="text-xs text-muted-foreground w-full text-center">
+                        SecurePay Sentinel · Academic Project · MIS5203
+                    </p>
+                </CardFooter>
             </Card>
         </div>
     )
