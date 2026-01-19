@@ -17,42 +17,33 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import Link from "next/link";
 import { Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
-import { signInUser } from "@/lib/actions";
+import { useAuth } from "@/context/auth-context";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+  password: z.string().min(1, { message: "Password is required for this demo." }),
 });
 
 export default function LoginPage() {
   const { toast } = useToast();
-  const router = useRouter();
+  const { signIn } = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "",
-      password: "",
+      email: "user@example.com",
+      password: "password",
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const result = await signInUser(values);
+    signIn(values.email);
 
-    if (result.error) {
-      toast({
-        variant: "destructive",
-        title: "Login Failed",
-        description: result.error,
-      });
-    } else {
-      toast({
-        title: "Login Successful",
-        description: "Redirecting to your dashboard...",
-      });
-      // The AuthProvider will handle the redirection
-    }
+    toast({
+      title: "Login Successful",
+      description: "Redirecting to your dashboard...",
+    });
+    // The AuthProvider will handle the redirection
   }
 
   return (
@@ -64,7 +55,9 @@ export default function LoginPage() {
             <span className="font-bold font-headline text-2xl">SecurePay Sentinel</span>
           </div>
           <CardTitle className="font-headline text-2xl">Login</CardTitle>
-          <CardDescription>Access your secure account</CardDescription>
+          <CardDescription>
+            Access your secure account. <br /> Use `user@example.com` or `admin@sentinel.com`.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>

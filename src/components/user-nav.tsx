@@ -12,17 +12,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/context/auth-context";
-import { signOutUser } from "@/lib/actions";
-import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 
 export function UserNav() {
-  const { user } = useAuth();
-  const router = useRouter();
+  const { user, signOut } = useAuth();
 
   const handleLogout = async () => {
-    await signOutUser();
-    router.push('/login');
+    signOut();
   };
 
   if (!user) {

@@ -18,7 +18,6 @@ import Link from "next/link";
 import { Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { registerUser } from "@/lib/actions";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -38,21 +37,12 @@ export default function RegisterPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const result = await registerUser(values);
-
-    if (result.error) {
-      toast({
-        variant: "destructive",
-        title: "Registration Failed",
-        description: result.error,
-      });
-    } else {
-      toast({
-        title: "Registration Successful",
-        description: "Please check your email for verification before logging in.",
-      });
-      router.push("/login");
-    }
+    // Mock success for static demo
+    toast({
+      title: "Registration Successful",
+      description: "You can now log in. This is a static demo.",
+    });
+    router.push("/login");
   }
 
   return (
