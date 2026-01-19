@@ -11,10 +11,10 @@ import {
 } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Menu, FileText, Shield } from "lucide-react";
+import { LayoutDashboard, Menu, FileText, Shield, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React from "react";
+import React, { useState } from "react";
 
 const navItems = [
   { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
@@ -46,38 +46,55 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
   return (
     <AdminAuthGuard>
-      <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-        <div className="hidden border-r bg-card md:block">
-          <div className="flex h-full max-h-screen flex-col gap-2">
-            <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-              <Link href="/admin" className="flex items-center gap-2 font-semibold font-headline">
-                <Shield className="h-6 w-6 text-primary" />
-                <span className="">Admin Panel</span>
-              </Link>
-            </div>
-            <div className="flex-1">
-              <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-                {navItems.map((item) => (
-                  <NavLink key={item.href} item={item} />
-                ))}
-              </nav>
-            </div>
-             <div className="mt-auto p-4">
-                <Card>
-                    <CardHeader className="p-2 pt-0 md:p-4">
-                        <CardTitle className="font-headline text-base">Academic Project</CardTitle>
-                        <CardDescription>
-                            This is a simulated admin dashboard for research and educational purposes.
-                        </CardDescription>
-                    </CardHeader>
-                </Card>
-            </div>
-          </div>
-        </div>
-        <div className="flex flex-col">
-          <header className="flex h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
+       <div className="min-h-screen w-full">
+         {sidebarOpen && (
+            <aside className="hidden md:fixed md:inset-y-0 md:left-0 md:z-20 md:flex md:w-[220px] lg:w-[280px] flex-col border-r bg-card">
+                 <div className="flex h-full max-h-screen flex-col gap-2">
+                    <div className="flex h-14 items-center justify-between border-b px-4 lg:h-[60px] lg:px-6">
+                        <Link href="/admin" className="flex items-center gap-2 font-semibold font-headline">
+                            <Shield className="h-6 w-6 text-primary" />
+                            <span className="">Admin Panel</span>
+                        </Link>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="hidden md:inline-flex"
+                            onClick={() => setSidebarOpen(false)}
+                            >
+                            <X className="h-5 w-5" />
+                        </Button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto">
+                        <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
+                            {navItems.map((item) => (
+                            <NavLink key={item.href} item={item} />
+                            ))}
+                        </nav>
+                    </div>
+                    <div className="mt-auto p-4">
+                        <Card>
+                            <CardHeader className="p-2 pt-0 md:p-4">
+                                <CardTitle className="font-headline text-base">Academic Project</CardTitle>
+                                <CardDescription>
+                                    This is a simulated admin dashboard for research and educational purposes.
+                                </CardDescription>
+                            </CardHeader>
+                        </Card>
+                    </div>
+                </div>
+            </aside>
+        )}
+        <div
+          className={cn(
+            "flex flex-col h-screen",
+            sidebarOpen ? "md:ml-[220px] lg:ml-[280px]" : "ml-0"
+          )}
+        >
+          <header className="flex h-14 shrink-0 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
             <Sheet>
               <SheetTrigger asChild>
                 <Button
@@ -109,11 +126,20 @@ export default function AdminLayout({
               </SheetContent>
             </Sheet>
             <div className="w-full flex-1">
-              {/* Optional: Add search bar here */}
+                 {!sidebarOpen && (
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        className="hidden md:inline-flex"
+                        onClick={() => setSidebarOpen(true)}
+                    >
+                        <Menu className="h-5 w-5" />
+                    </Button>
+                )}
             </div>
             <UserNav />
           </header>
-          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-secondary/60 overflow-y-auto">
+          <main className="flex-1 overflow-y-auto bg-secondary/60 p-4 lg:p-6">
             {children}
           </main>
         </div>
