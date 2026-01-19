@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/context/auth-context";
-import { LogOut } from "lucide-react";
+import { LogOut, UserCircle } from "lucide-react";
 
 export function UserNav() {
   const { user, signOut } = useAuth();
@@ -29,6 +29,8 @@ export function UserNav() {
     return email.substring(0, 2).toUpperCase();
   }
 
+  const userRole = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -42,12 +44,19 @@ export function UserNav() {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">Signed in as</p>
+            <p className="text-sm font-medium leading-none">Student User</p>
             <p className="text-xs leading-none text-muted-foreground truncate">
               {user.email}
             </p>
           </div>
         </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+           <DropdownMenuItem className="focus:bg-transparent cursor-default focus:text-accent-foreground data-[disabled]:opacity-100" disabled>
+             <UserCircle className="mr-2 h-4 w-4" />
+             <span>Role: {userRole}</span>
+           </DropdownMenuItem>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem onClick={handleLogout}>
