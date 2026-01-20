@@ -19,10 +19,10 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["var(--font-inter)", ...fontFamily.sans],
-        body: ["var(--font-inter)", ...fontFamily.sans],
-        headline: ["var(--font-space-grotesk)", ...fontFamily.sans],
-        code: ["var(--font-source-code-pro)", ...fontFamily.mono],
+        sans: ["var(--font-poppins)", ...fontFamily.sans],
+        body: ["var(--font-poppins)", ...fontFamily.sans],
+        headline: ["var(--font-dm-serif-display)", ...fontFamily.sans],
+        code: ["var(--font-fira-code)", ...fontFamily.mono],
       },
       colors: {
         border: "hsl(var(--border))",

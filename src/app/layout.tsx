@@ -1,12 +1,21 @@
 import type { Metadata } from 'next';
-import { Inter, Space_Grotesk, Source_Code_Pro } from 'next/font/google';
+import { Poppins, DM_Serif_Display, Fira_Code } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/context/auth-context';
 import { Toaster } from "@/components/ui/toaster"
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
-const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space-grotesk' });
-const sourceCodePro = Source_Code_Pro({ subsets: ['latin'], variable: '--font-source-code-pro' });
+const poppins = Poppins({ 
+  subsets: ['latin'], 
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-poppins' 
+});
+const dmSerifDisplay = DM_Serif_Display({
+  subsets: ['latin'],
+  weight: '400',
+  variable: '--font-dm-serif-display',
+});
+const firaCode = Fira_Code({ subsets: ['latin'], variable: '--font-fira-code' });
+
 
 export const metadata: Metadata = {
   title: 'SecurePay Sentinel',
@@ -20,12 +29,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      </head>
-      <body className={`${inter.variable} ${spaceGrotesk.variable} ${sourceCodePro.variable} font-body antialiased`}>
+      <head />
+      <body className={`${poppins.variable} ${dmSerifDisplay.variable} ${firaCode.variable} font-body antialiased`}>
         <AuthProvider>
           {children}
           <Toaster />
