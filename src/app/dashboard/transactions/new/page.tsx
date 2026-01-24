@@ -24,10 +24,8 @@ import { Info, ListChecks, Terminal, ArrowLeft } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { useFirebase } from "@/firebase";
-import { addDoc, collection } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import type { RiskLevel } from "@/lib/types";
-import { errorEmitter } from "@/firebase/error-emitter";
-import { FirestorePermissionError } from "@/firebase/errors";
 import { useState } from "react";
 
 const formSchema = z.object({
@@ -58,7 +56,7 @@ export default function NewTransactionPage() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user || !firestore) {
         toast({
             variant: "destructive",
@@ -68,72 +66,75 @@ export default function NewTransactionPage() {
         return;
     }
 
-    setIsSubmitting(true);
+    try {
+        setIsSubmitting(true);
 
-    // Mocked Fraud Detection Logic
-    let riskScore = 0;
-    const flaggingReasons: string[] = [];
+        // =========================
+        // Fraud Detection Logic
+        // =========================
+        let riskScore = 0;
+        const flaggingReasons: string[] = [];
 
-    if (values.amount > 1000) {
-      riskScore += 40;
-      flaggingReasons.push(`Transaction amount ($${values.amount}) is unusually high.`);
-    }
-
-    const unusualLocations = ['North Korea', 'Syria', 'Iran', 'Pyongyang, North Korea'];
-    if (unusualLocations.some(loc => values.location.toLowerCase().includes(loc.toLowerCase()))) {
-      riskScore += 50;
-      flaggingReasons.push(`Transaction location (${values.location}) is considered high-risk.`);
-    }
-
-    if (Math.random() < 0.1) {
-      riskScore += 20;
-      flaggingReasons.push('Transaction frequency is unusually rapid (simulated).');
-    }
-
-    riskScore = Math.min(riskScore, 100);
-
-    let riskLevel: RiskLevel;
-    if (riskScore < 40) riskLevel = 'Low';
-    else if (riskScore < 80) riskLevel = 'Medium';
-    else riskLevel = 'High';
-
-    const transactionsColRef = collection(firestore, `users/${user.uid}/transactions`);
-    
-    const newTransaction = {
-        ...values,
-        userId: user.uid,
-        createdAt: new Date(),
-        riskScore,
-        riskLevel,
-        flaggingReasons,
-    };
-
-    addDoc(transactionsColRef, newTransaction)
-      .then((docRef) => {
-        toast({
-          title: "Transaction Submitted Successfully",
-          description: `Risk Level: ${riskLevel}. Redirecting to review...`,
-        });
-        if (riskLevel === 'High') {
-          router.push(`/dashboard/alerts/${docRef.id}`);
-        } else {
-          router.push("/dashboard/transactions");
+        if (values.amount > 1000) {
+            riskScore += 40;
+            flaggingReasons.push(`Transaction amount ($${values.amount}) is unusually high.`);
         }
-      })
-      .catch(() => {
-        errorEmitter.emit(
-          'permission-error',
-          new FirestorePermissionError({
-            path: transactionsColRef.path,
-            operation: 'create',
-            requestResourceData: newTransaction,
-          })
-        );
-      })
-      .finally(() => {
+
+        const unusualLocations = ['North Korea', 'Syria', 'Iran', 'Pyongyang, North Korea'];
+        if (unusualLocations.some(loc => values.location.includes(loc))) {
+            riskScore += 50;
+            flaggingReasons.push(`Transaction location (${values.location}) is considered high-risk.`);
+        }
+
+        if (Math.random() < 0.1) {
+            riskScore += 20;
+            flaggingReasons.push('Transaction frequency is unusually rapid (simulated).');
+        }
+
+        riskScore = Math.min(riskScore, 100);
+
+        const riskLevel: RiskLevel =
+            riskScore < 40 ? "Low" : riskScore < 80 ? "Medium" : "High";
+
+        // =========================
+        // FIRESTORE SAVE (FIXED)
+        // =========================
+        const docRef = await addDoc(collection(firestore, "transactions"), {
+            userId: user.uid,              // IMPORTANT
+            amount: values.amount,
+            location: values.location,
+            device: values.device,
+
+            riskScore,
+            riskLevel,
+            flaggingReasons,
+
+            createdAt: serverTimestamp(), // FIXED
+        });
+
+        toast({
+            title: "Transaction Submitted",
+            description: `Risk Level: ${riskLevel}`,
+        });
+
+        if (riskLevel === "High") {
+            router.push(`/dashboard/alerts/${docRef.id}`);
+        } else {
+            router.push("/dashboard/transactions");
+        }
+
+    } catch (err) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to save transaction. You may not have permission.",
+        });
+        console.error(err);
+    } finally {
         setIsSubmitting(false);
-      });
+    }
   }
+
 
   return (
     <Card className="w-full max-w-2xl mx-auto">

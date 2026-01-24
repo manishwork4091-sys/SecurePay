@@ -51,7 +51,7 @@
         },
         "userId": {
           "type": "string",
-          "description": "Reference to the User who initiated the transaction. (Relationship: User 1:N Transaction)"
+          "description": "Reference to the User who initiated the transaction."
         },
         "date": {
           "type": "string",
@@ -102,7 +102,7 @@
         },
         "transactionId": {
           "type": "string",
-          "description": "Reference to the Transaction that triggered the alert. (Relationship: Transaction 1:1 FraudAlert)"
+          "description": "Reference to the Transaction that triggered the alert."
         },
         "riskScore": {
           "type": "number",
@@ -144,7 +144,7 @@
         },
         "userId": {
           "type": "string",
-          "description": "Reference to the User associated with the event (if applicable). (Relationship: User 1:N AuditLog)"
+          "description": "Reference to the User associated with the event (if applicable)."
         },
         "details": {
           "type": "string",
@@ -173,7 +173,7 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profile information.  Path-based ownership enforces that only the user can read/write their own profile. No denormalized authorization fields are needed as access is based on path and authentication.",
+          "description": "Stores user profile information. Path-based ownership enforces that only the user can read/write their own profile.",
           "params": [
             {
               "name": "userId",
@@ -183,38 +183,14 @@
         }
       },
       {
-        "path": "/users/{userId}/transactions/{transactionId}",
+        "path": "/transactions/{transactionId}",
         "definition": {
           "entityName": "Transaction",
           "schema": {
             "$ref": "#/backend/entities/Transaction"
           },
-          "description": "Stores transaction data for each user. Path-based ownership ensures only the user can read/write their transactions. No denormalized authorization fields are needed as access is based on path and authentication.",
+          "description": "Stores transaction data for all users in a flat collection. Each document contains a `userId` field to associate it with a user.",
           "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "transactionId",
-              "description": "The unique identifier of the transaction."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/transactions/{transactionId}/fraudAlert",
-        "definition": {
-          "entityName": "FraudAlert",
-          "schema": {
-            "$ref": "#/backend/entities/FraudAlert"
-          },
-          "description": "Stores fraud alerts associated with a transaction. Path-based ownership ensures only the user can read alerts associated with their transactions.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
             {
               "name": "transactionId",
               "description": "The unique identifier of the transaction."
@@ -255,6 +231,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the SecurePay Sentinel application, focusing on secure user authentication, transaction simulation, fraud detection, and audit logging. The key principle is Authorization Independence, achieved through denormalization of user roles where necessary. This eliminates the need for `get()` calls in security rules, ensuring atomic operations and simplified debugging. Structural Segregation is applied to separate user data (transactions, alerts) from system-wide data (audit logs, potentially admin configurations), ensuring homogeneous security postures within collections. Access Modeling follows path-based ownership for user-specific data and membership maps are not required given the simple role-based access control. QAPs (Rules Are Not Filters) are enforced by ensuring each collection's documents share the same security requirements.\n\n**User Authentication:** User profiles are stored in `/users/{userId}`.  Since the only role currently defined is 'admin', a separate `/roles_admin/{userId}` collection is used to denote admin status, which can be checked via `exists()` in security rules for admin-specific data.\n\n**Transactions:** Each user's transactions are stored in a subcollection `/users/{userId}/transactions/{transactionId}` ensuring clear ownership and easy querying of a user's transaction history.  Since FraudAlerts are 1:1 with Transactions, they're stored as a subcollection of Transactions.\n\n**Fraud Detection:** Cloud Functions analyze transactions and may create fraud alerts. The transaction data resides under the user who performed the transaction.\n\n**Audit Logging:** Audit logs are stored in a top-level `/auditLogs` collection.  This collection is write-only from Cloud Functions, preventing direct user modification, and accessible only to admins for reading, providing a secure and auditable record of system events."
+    "reasoning": "The Firestore structure is designed to support the SecurePay Sentinel application, focusing on secure user authentication, transaction simulation, and audit logging. The key principle is using a flat, scalable structure for transactions, which simplifies global queries and security rules. Authorization is enforced by checking the `userId` field within documents against the authenticated user's ID.\n\n**User Authentication:** User profiles are stored in `/users/{userId}`. A separate `/roles_admin/{userId}` collection is used to denote admin status, which can be checked via `exists()` in security rules for admin-specific data.\n\n**Transactions:** All transactions are stored in a single, top-level `/transactions` collection. Each transaction document contains a `userId` field, linking it to the user who created it. This flat structure is highly scalable and makes it easy to write security rules that allow users to access only their own documents.\n\n**Audit Logging:** Audit logs are stored in a top-level `/auditLogs` collection. This collection is write-only from Cloud Functions, preventing direct user modification, and accessible only to admins for reading, providing a secure and auditable record of system events."
   }
 }

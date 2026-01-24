@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/context/auth-context';
 import { Transaction, RiskLevel } from '@/lib/types';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -69,15 +69,18 @@ export default function TransactionsPage() {
   const { firestore } = useFirebase();
   const [filter, setFilter] = useState<RiskLevel | 'All'>('All');
 
-  const transactionsQuery = useMemoFirebase(() => user 
-    ? filter === 'All'
-        ? query(collection(firestore, `users/${user.uid}/transactions`), orderBy('createdAt', 'desc'))
-        : query(collection(firestore, `users/${user.uid}/transactions`), where('riskLevel', '==', filter), orderBy('createdAt', 'desc'))
-    : null, [firestore, user, filter]);
+  const transactionsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    const baseConditions = [where('userId', '==', user.uid)];
+    if (filter !== 'All') {
+        baseConditions.push(where('riskLevel', '==', filter));
+    }
+    return query(collection(firestore, 'transactions'), ...baseConditions, orderBy('createdAt', 'desc'));
+  }, [firestore, user, filter]);
     
   const { data: transactions, isLoading } = useCollection<Transaction>(transactionsQuery);
 
-  const allTransactionsQuery = useMemoFirebase(() => user ? collection(firestore, `users/${user.uid}/transactions`) : null, [firestore, user]);
+  const allTransactionsQuery = useMemoFirebase(() => user ? query(collection(firestore, `transactions`), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: allTransactions } = useCollection<Transaction>(allTransactionsQuery);
 
   const riskCounts = {

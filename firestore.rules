@@ -2,18 +2,18 @@
  * Core Philosophy: This ruleset enforces a strict security model based on user ownership and role-based access control.
  * It ensures that users can only access their own data, while administrators have specific, elevated privileges for system-wide collections.
  *
- * Data Structure: The data is organized hierarchically. All user-specific data, such as profiles, transactions, and fraud alerts,
- * is nested under the path /users/{userId}. System-level data, like audit logs and admin role definitions, resides in separate top-level collections.
+ * Data Structure: User data is stored in `/users/{userId}`. All transactions are stored in a flat `/transactions` collection, with
+ * each document containing a `userId` to enforce ownership. System-level data resides in separate top-level collections.
  *
  * Key Security Decisions:
  * - User Data Isolation: All collections under /users/{userId} are strictly private to the authenticated user matching that userId.
- * - Administrator Roles: Administrator status is determined by the existence of a document in the /roles_admin/{userId} collection. This collection is not client-accessible and must be managed via the Firebase console or a trusted backend, providing a secure way to manage roles.
- * - Immutable Audit Logs: The /auditLogs collection is read-only for administrators and cannot be written to by any client. This ensures that logs are a tamper-proof record of system events, created only by trusted server processes (e.g., Cloud Functions).
- * - User Listing Disabled: To protect user privacy and prevent data scraping, listing all documents in the top-level /users collection is explicitly disallowed.
+ * - Flat Transaction Structure: Transactions are stored in a top-level collection to allow for scalable queries while still being secured on a per-user basis via a `userId` field.
+ * - Administrator Roles: Administrator status is determined by the existence of a document in the /roles_admin/{userId} collection. This collection is not client-accessible and must be managed via the Firebase console or a trusted backend.
+ * - Immutable Audit Logs: The /auditLogs collection is read-only for administrators and cannot be written to by any client.
  *
- * Denormalization for Authorization: The /roles_admin/{userId} collection is a key example of denormalization. Instead of checking a field on a user's profile (which could be complex to secure), we perform a simple and performant `exists()` check against this collection to determine admin privileges. This avoids costly `get()` calls in rules and isolates the sensitive role data.
+ * Denormalization for Authorization: The /roles_admin/{userId} collection is a key example of denormalization. We perform a performant `exists()` check against this collection to determine admin privileges.
  *
- * Structural Segregation: User-private data (/users) is cleanly separated from system-level data (/auditLogs, /roles_admin). This allows for simple, powerful rules for each collection without complex conditional logic, as all documents within a given collection share the same security posture.
+ * Structural Segregation: User-private data (/users) is cleanly separated from shared data (/transactions) and system-level data (/auditLogs, /roles_admin).
  */
 rules_version = '2';
 service cloud.firestore {
@@ -64,24 +64,7 @@ service cloud.firestore {
     function isCreatingOwnUserDocument(userId) {
       return request.resource.data.id == userId;
     }
-
-    /**
-     * isTransactionDataConsistent
-     * Validates that the transaction document being created has a 'userId' field
-     * that matches the user's auth UID from the path.
-     */
-    function isTransactionDataConsistent(userId) {
-      return request.resource.data.userId == userId;
-    }
     
-    /**
-     * isUserIdImmutable
-     * Ensures the userId field cannot be changed after creation.
-     */
-    function isUserIdImmutable() {
-      return request.resource.data.userId == resource.data.userId;
-    }
-
     /**
      * isRoleImmutable
      * Ensures the role field cannot be changed by the user.
@@ -99,9 +82,6 @@ service cloud.firestore {
      * @description   Stores user profile information. A user can create their own profile
      *                and can only read or write their own data thereafter. Role escalation is prevented.
      * @path          /users/{userId}
-     * @allow         (create) An authenticated user creating their own profile with the 'user' role.
-     * @deny          (list) Any user, including an admin, trying to list all users.
-     * @principle     Enforces Self-Creation and strict Ownership of user profile data.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
@@ -110,36 +90,19 @@ service cloud.firestore {
       allow update: if isExistingOwner(userId) && isRoleImmutable();
       allow delete: if isExistingOwner(userId);
     }
-
+    
     /**
-     * @description   Stores a user's private transaction history.
-     * @path          /users/{userId}/transactions/{transactionId}
-     * @allow         (create) An authenticated user creating a transaction for themselves.
-     * @deny          (read) A different user trying to read another user's transactions.
-     * @principle     Restricts access to a user's own data tree via path-based ownership.
+     * @description   Stores all user transactions in a flat collection.
+     *                Access is granted based on the `userId` field within each document.
+     * @path          /transactions/{transactionId}
      */
-    match /users/{userId}/transactions/{transactionId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && isTransactionDataConsistent(userId);
-      allow update: if isExistingOwner(userId) && isUserIdImmutable();
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description   Stores fraud alerts related to a specific user transaction.
-     *                Only the user who owns the transaction can view or manage these alerts.
-     * @path          /users/{userId}/transactions/{transactionId}/fraudAlert
-     * @allow         (read) An authenticated user reading an alert on their own transaction.
-     * @deny          (write) A different user trying to modify an alert on another's transaction.
-     * @principle     Inherits ownership from the parent user document.
-     */
-    match /users/{userId}/transactions/{transactionId}/fraudAlert {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+    match /transactions/{transactionId} {
+      // A user can create a transaction if the new document's `userId` matches their own.
+      allow create: if isOwner(request.resource.data.userId);
+      
+      // A user can read, update, or delete a transaction if the existing document's `userId` matches their own.
+      // The `read` rule also enables `list` queries that include `where('userId', '==', request.auth.uid)`.
+      allow get, update, delete, list: if isOwner(resource.data.userId);
     }
     
     /**
@@ -147,32 +110,19 @@ service cloud.firestore {
      *                document with a user's UID as its ID means they are an admin.
      *                This collection is not readable or writable by any client.
      * @path          /roles_admin/{userId}
-     * @allow         (none) All client-side operations are denied.
-     * @deny          (read, write) Any user attempting to read or modify admin roles.
-     * @principle     Serves as a secure, backend-managed source of truth for authorization checks.
      */
     match /roles_admin/{userId} {
-      allow get: if false;
-      allow list: if false;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow get, list, create, update, delete: if false;
     }
 
     /**
      * @description   Stores system-level audit logs. This data is created by backend
      *                processes and is read-only for administrators.
      * @path          /auditLogs/{auditLogId}
-     * @allow         (read) An authenticated admin user reading audit logs.
-     * @deny          (write) Any user, including admins, trying to create or modify logs from the client.
-     * @principle     Ensures data immutability for critical system records.
      */
     match /auditLogs/{auditLogId} {
-      allow get: if isAdmin();
-      allow list: if isAdmin();
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow get, list: if isAdmin();
+      allow create, update, delete: if false;
     }
   }
 }

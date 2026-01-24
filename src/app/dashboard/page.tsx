@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, orderBy } from 'firebase/firestore';
 
 function TransactionRow({ tx }: { tx: Transaction }) {
   const getBadgeVariant = (riskLevel: Transaction['riskLevel']) => {
@@ -53,7 +53,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const { firestore } = useFirebase();
 
-  const transactionsQuery = useMemoFirebase(() => user ? query(collection(firestore, `users/${user.uid}/transactions`), orderBy('createdAt', 'desc')) : null, [firestore, user]);
+  const transactionsQuery = useMemoFirebase(() => user ? query(collection(firestore, 'transactions'), where('userId', '==', user.uid), orderBy('createdAt', 'desc')) : null, [firestore, user]);
   const { data: allTransactions, isLoading } = useCollection<Transaction>(transactionsQuery);
 
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
