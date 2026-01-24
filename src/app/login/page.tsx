@@ -19,6 +19,8 @@ import { Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
+import { doc, getDoc } from 'firebase/firestore';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -27,7 +29,8 @@ const formSchema = z.object({
 
 export default function LoginPage() {
   const { toast } = useToast();
-  const { auth } = useFirebase();
+  const { auth, firestore } = useFirebase();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -39,12 +42,30 @@ export default function LoginPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
+
+      const userDocRef = doc(firestore, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      let isAdmin = false;
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        if (userData?.role === 'admin') {
+          isAdmin = true;
+        }
+      }
+
       toast({
         title: 'Login Successful',
-        description: 'Redirecting to your dashboard...',
+        description: `Redirecting to your ${isAdmin ? 'admin panel' : 'dashboard'}...`,
       });
-      // The AuthProvider will handle the redirection
+
+      if (isAdmin) {
+        router.push('/admin');
+      } else {
+        router.push('/dashboard');
+      }
     } catch (error: any) {
       toast({
         variant: 'destructive',
