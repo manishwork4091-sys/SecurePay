@@ -2,8 +2,8 @@
 
 import { z } from 'zod';
 import type { RiskLevel } from './types';
-import { getFirestore, doc, addDoc, collection } from 'firebase/firestore';
-import { initializeFirebase, addDocumentNonBlocking } from '@/firebase';
+import { addDoc, collection } from 'firebase/firestore';
+import { initializeFirebase } from '@/firebase';
 
 const transactionSchema = z.object({
   amount: z.coerce.number().positive(),
@@ -58,7 +58,7 @@ export async function createTransaction(values: z.infer<typeof transactionSchema
         flaggingReasons,
     };
 
-    const docRef = await addDocumentNonBlocking(transactionsColRef, newTransaction);
+    const docRef = await addDoc(transactionsColRef, newTransaction);
     
     return { success: true, transactionId: docRef.id, riskLevel };
   } catch (error: any) {
