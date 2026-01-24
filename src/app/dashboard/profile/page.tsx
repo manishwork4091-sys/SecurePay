@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { useAuth } from "@/context/auth-context";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { User, Mail, Shield, Calendar, KeyRound, CheckCircle, Clock, AlertTriangle } from "lucide-react";
-import { format, subDays } from "date-fns";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from '@/context/auth-context';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { User, Mail, Shield, Calendar, KeyRound, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { format, subDays } from 'date-fns';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function ProfilePage() {
     const { user } = useAuth();
@@ -21,6 +21,9 @@ export default function ProfilePage() {
     }
     
     const userRole = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+
+    // Convert Firestore Timestamp to Date if necessary
+    const createdAtDate = user.createdAt instanceof Date ? user.createdAt : (user.createdAt as any).toDate();
 
     return (
         <div className="space-y-6">
@@ -54,7 +57,7 @@ export default function ProfilePage() {
                                 <Calendar className="h-5 w-5 text-muted-foreground" />
                                 <div>
                                     <p className="text-muted-foreground">Account Created</p>
-                                    <p className="font-medium">{format(user.createdAt, 'PP')}</p>
+                                    <p className="font-medium">{format(createdAtDate, 'PP')}</p>
                                 </div>
                             </div>
                              <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">

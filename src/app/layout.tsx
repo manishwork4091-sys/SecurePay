@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import { Poppins, DM_Serif_Display, Fira_Code } from 'next/font/google';
 import './globals.css';
-import { AuthProvider } from '@/context/auth-context';
-import { Toaster } from "@/components/ui/toaster"
+import { AppProviders } from './providers';
 
 const poppins = Poppins({ 
   subsets: ['latin'], 
@@ -31,10 +30,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head />
       <body className={`${poppins.variable} ${dmSerifDisplay.variable} ${firaCode.variable} font-body antialiased`}>
-        <AuthProvider>
+        <AppProviders>
           {children}
-          <Toaster />
-        </AuthProvider>
+        </AppProviders>
       </body>
     </html>
   );

@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,15 +10,15 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useAuth } from "@/context/auth-context";
-import { LogOut, UserCircle } from "lucide-react";
+} from '@/components/ui/dropdown-menu';
+import { useAuth } from '@/context/auth-context';
+import { LogOut, UserCircle } from 'lucide-react';
 
 export function UserNav() {
   const { user, signOut } = useAuth();
 
   const handleLogout = async () => {
-    signOut();
+    await signOut();
   };
 
   if (!user) {

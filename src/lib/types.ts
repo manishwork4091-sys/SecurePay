@@ -1,4 +1,5 @@
 export interface UserProfile {
+  id: string;
   uid: string;
   email: string;
   role: 'user' | 'admin';

@@ -1,92 +1,75 @@
-"use client";
+'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import type { UserProfile } from '@/lib/types';
 import { usePathname, useRouter } from 'next/navigation';
+import { User } from 'firebase/auth';
+import { useFirebase, useUser, useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { useDoc, WithId } from '@/firebase/firestore/use-doc';
+import type { UserProfile } from '@/lib/types';
+
 
 interface AuthContextType {
-  user: UserProfile | null;
-  firebaseUser: { uid: string, email: string } | null;
+  user: WithId<UserProfile> | null;
+  firebaseUser: User | null;
   loading: boolean;
-  signIn: (email: string) => void;
-  signOut: () => void;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   firebaseUser: null,
   loading: true,
-  signIn: () => {},
-  signOut: () => {},
+  signOut: async () => {},
 });
-
-const mockUsers: { [key: string]: Omit<UserProfile, 'email'> } = {
-  'user@example.com': {
-    uid: 'mock-user-id',
-    role: 'user',
-    createdAt: new Date(),
-    mfaEnabled: true,
-  },
-  'admin@sentinel.com': {
-    uid: 'mock-admin-id',
-    role: 'admin',
-    createdAt: new Date(),
-    mfaEnabled: true,
-  },
-};
 
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const pathname = usePathname();
+  const { auth } = useFirebase();
+  const { user: firebaseUser, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const router = useRouter();
+  const pathname = usePathname();
+
+  const userDocRef = firebaseUser ? doc(firestore, 'users', firebaseUser.uid) : null;
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, you'd check for a session here.
-    // For this static mock, we'll just finish loading.
-    setLoading(false);
-  }, []);
+    setLoading(isUserLoading || isProfileLoading);
+  }, [isUserLoading, isProfileLoading]);
+
+  const signOut = async () => {
+    await auth.signOut();
+    router.push('/login');
+  };
 
   useEffect(() => {
     if (loading) return;
 
     const isAuthPage = pathname === '/login' || pathname === '/register';
     
-    if (user) {
-      // If user is logged in, redirect from auth pages
+    if (firebaseUser && userProfile) {
       if (isAuthPage) {
-        if (user.role === 'admin') {
+        if (userProfile.role === 'admin') {
           router.replace('/admin');
         } else {
           router.replace('/dashboard');
         }
       }
-    } else {
-      // If user is not logged in, protect routes
+    } else if (!firebaseUser) {
       const isProtectedRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/admin');
       if (isProtectedRoute) {
-          router.replace('/login');
+        router.replace('/login');
       }
     }
-  }, [user, loading, pathname, router]);
-
-  const signIn = (email: string) => {
-    const lowerCaseEmail = email.toLowerCase();
-    const baseUser = mockUsers[lowerCaseEmail] || mockUsers['user@example.com'];
-    setUser({ ...baseUser, email: lowerCaseEmail });
-  };
-
-  const signOut = () => {
-    setUser(null);
-    router.push('/login');
-  };
+  }, [firebaseUser, userProfile, loading, pathname, router]);
 
   const value = {
-    user,
-    firebaseUser: user ? { uid: user.uid, email: user.email } : null,
+    user: userProfile,
+    firebaseUser,
     loading,
-    signIn,
     signOut,
   };
 
