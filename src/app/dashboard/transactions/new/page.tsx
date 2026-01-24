@@ -176,7 +176,7 @@ export default function NewTransactionPage() {
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a transaction location" />
-                      </Trigger>
+                      </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {locations.map(loc => <SelectItem key={loc} value={loc}>{loc}</SelectItem>)}
@@ -199,7 +199,7 @@ export default function NewTransactionPage() {
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a device type" />
-                      </Trigger>
+                      </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="Desktop">Desktop</SelectItem>
