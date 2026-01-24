@@ -3,7 +3,7 @@
 import { z } from 'zod';
 import type { RiskLevel } from './types';
 import { addDoc, collection } from 'firebase/firestore';
-import { initializeFirebase } from '@/firebase';
+import { initializeFirebase } from '@/firebase/init';
 
 const transactionSchema = z.object({
   amount: z.coerce.number().positive(),
