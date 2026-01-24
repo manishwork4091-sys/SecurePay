@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
-import { useFirebase } from '@/firebase';
+import { useFirebase, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { explainFraudRisk } from '@/ai/flows/explainable-fraud-risk';
@@ -20,7 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function AlertPage({ params }: { params: { id: string } }) {
   const { user } = useAuth();
   const { firestore } = useFirebase();
-  const transactionDocRef = user ? doc(firestore, `users/${user.uid}/transactions/${params.id}`) : null;
+  const transactionDocRef = useMemoFirebase(() => user ? doc(firestore, `users/${user.uid}/transactions/${params.id}`) : null, [firestore, user, params.id]);
   const { data: transaction, isLoading } = useDoc<Transaction>(transactionDocRef);
   const [explanation, setExplanation] = useState('');
   const [isExplanationLoading, setIsExplanationLoading] = useState(false);

@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Loader2, ArrowLeft, Circle } from 'lucide-react';
-import { useCollection, useFirebase } from '@/firebase';
+import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 
 function TransactionRow({ tx }: { tx: Transaction }) {
@@ -69,15 +69,16 @@ export default function TransactionsPage() {
   const { firestore } = useFirebase();
   const [filter, setFilter] = useState<RiskLevel | 'All'>('All');
 
-  const transactionsQuery = user 
+  const transactionsQuery = useMemoFirebase(() => user 
     ? filter === 'All'
         ? query(collection(firestore, `users/${user.uid}/transactions`), orderBy('createdAt', 'desc'))
         : query(collection(firestore, `users/${user.uid}/transactions`), where('riskLevel', '==', filter), orderBy('createdAt', 'desc'))
-    : null;
+    : null, [firestore, user, filter]);
     
   const { data: transactions, isLoading } = useCollection<Transaction>(transactionsQuery);
 
-  const { data: allTransactions } = useCollection<Transaction>(user ? collection(firestore, `users/${user.uid}/transactions`) : null);
+  const allTransactionsQuery = useMemoFirebase(() => user ? collection(firestore, `users/${user.uid}/transactions`) : null, [firestore, user]);
+  const { data: allTransactions } = useCollection<Transaction>(allTransactionsQuery);
 
   const riskCounts = {
     Low: allTransactions?.filter(tx => tx.riskLevel === 'Low').length || 0,

@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { User } from 'firebase/auth';
-import { useFirebase, useUser, useFirestore } from '@/firebase';
+import { useFirebase, useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useDoc, WithId } from '@/firebase/firestore/use-doc';
 import type { UserProfile } from '@/lib/types';
@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const userDocRef = firebaseUser ? doc(firestore, 'users', firebaseUser.uid) : null;
+  const userDocRef = useMemoFirebase(() => firebaseUser ? doc(firestore, 'users', firebaseUser.uid) : null, [firestore, firebaseUser]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   const [loading, setLoading] = useState(true);

@@ -19,7 +19,7 @@ import {
     CheckCircle,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { useCollection, useFirebase } from '@/firebase';
+import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit } from 'firebase/firestore';
 
 function TransactionRow({ tx }: { tx: Transaction }) {
@@ -53,7 +53,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const { firestore } = useFirebase();
 
-  const transactionsQuery = user ? query(collection(firestore, `users/${user.uid}/transactions`), orderBy('createdAt', 'desc')) : null;
+  const transactionsQuery = useMemoFirebase(() => user ? query(collection(firestore, `users/${user.uid}/transactions`), orderBy('createdAt', 'desc')) : null, [firestore, user]);
   const { data: allTransactions, isLoading } = useCollection<Transaction>(transactionsQuery);
 
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
