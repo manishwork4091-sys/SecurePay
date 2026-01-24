@@ -1,0 +1,170 @@
+/**
+ * Core Philosophy: This ruleset enforces a strict security model based on user ownership and role-based access control.
+ * It ensures that users can only access their own data, while administrators have specific, elevated privileges for system-wide collections.
+ *
+ * Data Structure: The data is organized hierarchically. All user-specific data, such as profiles, transactions, and fraud alerts,
+ * is nested under the path /users/{userId}. System-level data, like audit logs and admin role definitions, resides in separate top-level collections.
+ *
+ * Key Security Decisions:
+ * - User Data Isolation: All collections under /users/{userId} are strictly private to the authenticated user matching that userId.
+ * - Administrator Roles: Administrator status is determined by the existence of a document in the /roles_admin/{userId} collection. This collection is not client-accessible and must be managed via the Firebase console or a trusted backend, providing a secure way to manage roles.
+ * - Immutable Audit Logs: The /auditLogs collection is read-only for administrators and cannot be written to by any client. This ensures that logs are a tamper-proof record of system events, created only by trusted server processes (e.g., Cloud Functions).
+ * - User Listing Disabled: To protect user privacy and prevent data scraping, listing all documents in the top-level /users collection is explicitly disallowed.
+ *
+ * Denormalization for Authorization: The /roles_admin/{userId} collection is a key example of denormalization. Instead of checking a field on a user's profile (which could be complex to secure), we perform a simple and performant `exists()` check against this collection to determine admin privileges. This avoids costly `get()` calls in rules and isolates the sensitive role data.
+ *
+ * Structural Segregation: User-private data (/users) is cleanly separated from system-level data (/auditLogs, /roles_admin). This allows for simple, powerful rules for each collection without complex conditional logic, as all documents within a given collection share the same security posture.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    //-------------------------------------------------------------------------
+    // Helper Functions
+    //-------------------------------------------------------------------------
+
+    /**
+     * isSignedIn
+     * Checks if a user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * isOwner
+     * Checks if the currently authenticated user's UID matches the provided userId.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    /**
+     * isExistingOwner
+     * Checks for ownership on an existing document. Used for update and delete.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * isAdmin
+     * Checks if the authenticated user has an admin role document.
+     * This is a performant check that does not count as a read operation.
+     */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    /**
+     * isCreatingOwnUserDocument
+     * Validates that the user document being created has an 'id' field
+     * that matches the user's auth UID.
+     */
+    function isCreatingOwnUserDocument(userId) {
+      return request.resource.data.id == userId;
+    }
+
+    /**
+     * isTransactionDataConsistent
+     * Validates that the transaction document being created has a 'userId' field
+     * that matches the user's auth UID from the path.
+     */
+    function isTransactionDataConsistent(userId) {
+      return request.resource.data.userId == userId;
+    }
+    
+    /**
+     * isUserIdImmutable
+     * Ensures the userId field cannot be changed after creation.
+     */
+    function isUserIdImmutable() {
+      return request.resource.data.userId == resource.data.userId;
+    }
+
+
+    //-------------------------------------------------------------------------
+    // Collection Rules
+    //-------------------------------------------------------------------------
+
+    /**
+     * @description   Stores user profile information. A user can create their own profile
+     *                and can only read or write their own data thereafter.
+     * @path          /users/{userId}
+     * @allow         (create) An authenticated user creating their own profile document.
+     * @deny          (list) Any user, including an admin, trying to list all users.
+     * @principle     Enforces Self-Creation and strict Ownership of user profile data.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && isCreatingOwnUserDocument(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description   Stores a user's private transaction history.
+     * @path          /users/{userId}/transactions/{transactionId}
+     * @allow         (create) An authenticated user creating a transaction for themselves.
+     * @deny          (read) A different user trying to read another user's transactions.
+     * @principle     Restricts access to a user's own data tree via path-based ownership.
+     */
+    match /users/{userId}/transactions/{transactionId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && isTransactionDataConsistent(userId);
+      allow update: if isExistingOwner(userId) && isUserIdImmutable();
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description   Stores fraud alerts related to a specific user transaction.
+     *                Only the user who owns the transaction can view or manage these alerts.
+     * @path          /users/{userId}/transactions/{transactionId}/fraudAlert
+     * @allow         (read) An authenticated user reading an alert on their own transaction.
+     * @deny          (write) A different user trying to modify an alert on another's transaction.
+     * @principle     Inherits ownership from the parent user document.
+     */
+    match /users/{userId}/transactions/{transactionId}/fraudAlert {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+    
+    /**
+     * @description   A collection used to grant admin privileges. The existence of a
+     *                document with a user's UID as its ID means they are an admin.
+     *                This collection is not readable or writable by any client.
+     * @path          /roles_admin/{userId}
+     * @allow         (none) All client-side operations are denied.
+     * @deny          (read, write) Any user attempting to read or modify admin roles.
+     * @principle     Serves as a secure, backend-managed source of truth for authorization checks.
+     */
+    match /roles_admin/{userId} {
+      allow get: if false;
+      allow list: if false;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description   Stores system-level audit logs. This data is created by backend
+     *                processes and is read-only for administrators.
+     * @path          /auditLogs/{auditLogId}
+     * @allow         (read) An authenticated admin user reading audit logs.
+     * @deny          (write) Any user, including admins, trying to create or modify logs from the client.
+     * @principle     Ensures data immutability for critical system records.
+     */
+    match /auditLogs/{auditLogId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}

@@ -1,0 +1,260 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user within the SecurePay Sentinel application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user.",
+          "format": "uuid"
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "role": {
+          "type": "string",
+          "description": "User's role (e.g., 'user', 'admin').",
+          "format": "string"
+        },
+        "mfaEnabled": {
+          "type": "boolean",
+          "description": "Indicates if multi-factor authentication is enabled for the user."
+        },
+        "registrationDate": {
+          "type": "string",
+          "description": "Date and time the user registered.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "role",
+        "mfaEnabled",
+        "registrationDate"
+      ]
+    },
+    "Transaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Transaction",
+      "type": "object",
+      "description": "Represents a simulated digital payment transaction.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the transaction."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who initiated the transaction. (Relationship: User 1:N Transaction)"
+        },
+        "date": {
+          "type": "string",
+          "description": "Date and time of the transaction.",
+          "format": "date-time"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Transaction amount."
+        },
+        "location": {
+          "type": "string",
+          "description": "Location of the transaction (country/city)."
+        },
+        "deviceType": {
+          "type": "string",
+          "description": "Device type used for the transaction (mobile/desktop)."
+        },
+        "riskScore": {
+          "type": "number",
+          "description": "Fraud risk score (0-100)."
+        },
+        "status": {
+          "type": "string",
+          "description": "Transaction status."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "date",
+        "amount",
+        "location",
+        "deviceType",
+        "riskScore",
+        "status"
+      ]
+    },
+    "FraudAlert": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FraudAlert",
+      "type": "object",
+      "description": "Represents a fraud alert generated for a transaction.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the fraud alert."
+        },
+        "transactionId": {
+          "type": "string",
+          "description": "Reference to the Transaction that triggered the alert. (Relationship: Transaction 1:1 FraudAlert)"
+        },
+        "riskScore": {
+          "type": "number",
+          "description": "Risk score associated with the alert."
+        },
+        "reasons": {
+          "type": "array",
+          "description": "Reasons why the transaction was flagged as fraudulent.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "transactionId",
+        "riskScore",
+        "reasons"
+      ]
+    },
+    "AuditLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AuditLog",
+      "type": "object",
+      "description": "Represents an audit log entry for security-relevant events.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the audit log entry."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp of the event.",
+          "format": "date-time"
+        },
+        "event": {
+          "type": "string",
+          "description": "Description of the event (e.g., 'login attempt', 'flagged transaction')."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User associated with the event (if applicable). (Relationship: User 1:N AuditLog)"
+        },
+        "details": {
+          "type": "string",
+          "description": "Additional details about the event (e.g., IP address, transaction ID)."
+        }
+      },
+      "required": [
+        "id",
+        "timestamp",
+        "event"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information.  Path-based ownership enforces that only the user can read/write their own profile. No denormalized authorization fields are needed as access is based on path and authentication.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/transactions/{transactionId}",
+        "definition": {
+          "entityName": "Transaction",
+          "schema": {
+            "$ref": "#/backend/entities/Transaction"
+          },
+          "description": "Stores transaction data for each user. Path-based ownership ensures only the user can read/write their transactions. No denormalized authorization fields are needed as access is based on path and authentication.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "transactionId",
+              "description": "The unique identifier of the transaction."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/transactions/{transactionId}/fraudAlert",
+        "definition": {
+          "entityName": "FraudAlert",
+          "schema": {
+            "$ref": "#/backend/entities/FraudAlert"
+          },
+          "description": "Stores fraud alerts associated with a transaction. Path-based ownership ensures only the user can read alerts associated with their transactions.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "transactionId",
+              "description": "The unique identifier of the transaction."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/auditLogs/{auditLogId}",
+        "definition": {
+          "entityName": "AuditLog",
+          "schema": {
+            "$ref": "#/backend/entities/AuditLog"
+          },
+          "description": "Stores audit logs. Write-only from Cloud Functions. Accessible only to admins for reading.",
+          "params": [
+            {
+              "name": "auditLogId",
+              "description": "The unique identifier of the audit log entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "adminRole",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Documents in this collection denote admin users. Existence of a document indicates admin status. No schema is enforced, existence alone is the signal.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the admin user."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support the SecurePay Sentinel application, focusing on secure user authentication, transaction simulation, fraud detection, and audit logging. The key principle is Authorization Independence, achieved through denormalization of user roles where necessary. This eliminates the need for `get()` calls in security rules, ensuring atomic operations and simplified debugging. Structural Segregation is applied to separate user data (transactions, alerts) from system-wide data (audit logs, potentially admin configurations), ensuring homogeneous security postures within collections. Access Modeling follows path-based ownership for user-specific data and membership maps are not required given the simple role-based access control. QAPs (Rules Are Not Filters) are enforced by ensuring each collection's documents share the same security requirements.\n\n**User Authentication:** User profiles are stored in `/users/{userId}`.  Since the only role currently defined is 'admin', a separate `/roles_admin/{userId}` collection is used to denote admin status, which can be checked via `exists()` in security rules for admin-specific data.\n\n**Transactions:** Each user's transactions are stored in a subcollection `/users/{userId}/transactions/{transactionId}` ensuring clear ownership and easy querying of a user's transaction history.  Since FraudAlerts are 1:1 with Transactions, they're stored as a subcollection of Transactions.\n\n**Fraud Detection:** Cloud Functions analyze transactions and may create fraud alerts. The transaction data resides under the user who performed the transaction.\n\n**Audit Logging:** Audit logs are stored in a top-level `/auditLogs` collection.  This collection is write-only from Cloud Functions, preventing direct user modification, and accessible only to admins for reading, providing a secure and auditable record of system events."
+  }
+}
