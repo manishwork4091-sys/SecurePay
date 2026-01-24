@@ -3,7 +3,7 @@
 import { useAuth } from '@/context/auth-context';
 import { useFirebase, useMemoFirebase } from '@/firebase';
 import { useCollection } from '@/firebase/firestore/use-collection';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { Transaction } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -61,8 +61,7 @@ export default function TransactionsPage() {
   const transactionsQuery = useMemoFirebase(() => 
     user
       ? query(
-          collection(firestore, 'transactions'),
-          where('userId', '==', user.uid),
+          collection(firestore, `users/${user.uid}/transactions`),
           orderBy('createdAt', 'desc')
         )
       : null
@@ -71,9 +70,6 @@ export default function TransactionsPage() {
   const { data: transactions, isLoading } = useCollection<Transaction>(transactionsQuery);
 
   if (!user) {
-    // Auth is still loading or user is not logged in.
-    // The AuthGuard will handle redirection if necessary.
-    // Showing a loader here is good practice.
     return (
         <div className="flex items-center justify-center h-full">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -114,7 +110,7 @@ export default function TransactionsPage() {
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
-                                    No transactions found.
+                                    No transactions found. Create one to get started!
                                 </TableCell>
                             </TableRow>
                         )}

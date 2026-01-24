@@ -11,7 +11,6 @@ export type RiskLevel = 'Low' | 'Medium' | 'High';
 
 export interface Transaction {
   id: string;
-  userId: string;
   amount: number;
   location: string;
   device: 'Mobile' | 'Desktop';
@@ -22,7 +21,7 @@ export interface Transaction {
 }
 
 export interface AuditLog {
-  id: string;
+  id:string;
   event: 'Login' | 'Failed Login' | 'Transaction Flagged' | 'Admin Action' | 'User Registered';
   userId: string;
   timestamp: Date;

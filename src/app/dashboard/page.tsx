@@ -16,8 +16,12 @@ import {
     CalendarDays,
     Info,
     CheckCircle,
+    Loader2
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useFirebase, useMemoFirebase } from '@/firebase';
+import { collection, orderBy, query } from 'firebase/firestore';
+import { useCollection } from '@/firebase/firestore/use-collection';
 
 function TransactionRow({ tx }: { tx: Transaction }) {
   const getBadgeVariant = (riskLevel: Transaction['riskLevel']) => {
@@ -48,35 +52,40 @@ function TransactionRow({ tx }: { tx: Transaction }) {
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  
+  const { firestore } = useFirebase();
+
+  const transactionsQuery = useMemoFirebase(() => 
+    user
+      ? query(
+          collection(firestore, `users/${user.uid}/transactions`),
+          orderBy('createdAt', 'desc')
+        )
+      : null
+  , [firestore, user]);
+
+  const { data: transactions, isLoading } = useCollection<Transaction>(transactionsQuery);
+
   if (!user) {
-    return null; // Or a loading spinner
+    return (
+      <div className="flex items-center justify-center h-full">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
-  // --- MOCK DATA ---
-  const mockTransactions: Transaction[] = [
-      { id: 'tx_1', userId: 'user@example.com', amount: 250.00, location: 'New York, USA', device: 'Desktop', createdAt: new Date(), riskScore: 10, riskLevel: 'Low' },
-      { id: 'tx_2', userId: 'user@example.com', amount: 75.50, location: 'London, UK', device: 'Mobile', createdAt: new Date(Date.now() - 86400000), riskScore: 5, riskLevel: 'Low' },
-      { id: 'tx_3', userId: 'user@example.com', amount: 1200, location: 'Pyongyang, North Korea', device: 'Desktop', createdAt: new Date(Date.now() - 172800000), riskScore: 90, riskLevel: 'High', flaggingReasons: ['High risk location'] },
-      { id: 'tx_4', userId: 'user@example.com', amount: 600, location: 'Paris, France', device: 'Desktop', createdAt: new Date(Date.now() - 259200000), riskScore: 50, riskLevel: 'Medium' },
-      { id: 'tx_5', userId: 'user@example.com', amount: 25.00, location: 'Tokyo, Japan', device: 'Mobile', createdAt: new Date(Date.now() - 345600000), riskScore: 2, riskLevel: 'Low' },
-      { id: 'tx_6', userId: 'user@example.com', amount: 950.00, location: 'Bogota, Colombia', device: 'Mobile', createdAt: new Date(Date.now() - 572800000), riskScore: 85, riskLevel: 'High' },
-  ];
-
-  const highRisk = mockTransactions.filter(tx => tx.riskLevel === 'High');
-  const mediumRisk = mockTransactions.filter(tx => tx.riskLevel === 'Medium');
+  const allTransactions = transactions || [];
+  const highRisk = allTransactions.filter(tx => tx.riskLevel === 'High');
+  const mediumRisk = allTransactions.filter(tx => tx.riskLevel === 'Medium');
   
-  const recentTransactions = mockTransactions.slice(0, 5);
+  const recentTransactions = allTransactions.slice(0, 5);
   const highRiskAlerts = highRisk.slice(0, 3);
   
   const stats = {
-      totalTx: mockTransactions.length,
+      totalTx: allTransactions.length,
       highRiskAlerts: highRisk.length,
       mediumRiskTx: mediumRisk.length,
-      fraudRate: mockTransactions.length > 0 ? (highRisk.length / mockTransactions.length) * 100 : 0,
+      fraudRate: allTransactions.length > 0 ? (highRisk.length / allTransactions.length) * 100 : 0,
   };
-  const isLoading = false;
-  // --- END MOCK DATA ---
 
   return (
     <div className="flex flex-col gap-6">
@@ -98,7 +107,7 @@ export default function DashboardPage() {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-headline">{stats.totalTx}</div>
+            <div className="text-2xl font-bold font-headline">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats.totalTx}</div>
             <p className="text-xs text-muted-foreground">in total</p>
           </CardContent>
         </Card>
@@ -108,7 +117,7 @@ export default function DashboardPage() {
             <ShieldAlert className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-headline">{stats.highRiskAlerts}</div>
+            <div className="text-2xl font-bold font-headline">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats.highRiskAlerts}</div>
             <p className="text-xs text-muted-foreground">Potential fraud detected</p>
           </CardContent>
         </Card>
@@ -118,7 +127,7 @@ export default function DashboardPage() {
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-headline">{stats.mediumRiskTx}</div>
+            <div className="text-2xl font-bold font-headline">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats.mediumRiskTx}</div>
             <p className="text-xs text-muted-foreground">Review advised</p>
           </CardContent>
         </Card>
@@ -128,7 +137,7 @@ export default function DashboardPage() {
             <Percent className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-headline">{stats.fraudRate.toFixed(1)}%</div>
+            <div className="text-2xl font-bold font-headline">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : `${stats.fraudRate.toFixed(1)}%`}</div>
             <p className="text-xs text-muted-foreground">Based on high-risk alerts</p>
           </CardContent>
         </Card>
@@ -151,7 +160,7 @@ export default function DashboardPage() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                    <TableRow><TableCell colSpan={3} className="text-center h-24">Loading...</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={3} className="h-24 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></TableCell></TableRow>
                 ) : recentTransactions.length > 0 ? (
                     recentTransactions.map(tx => <TransactionRow key={tx.id} tx={tx} />)
                 ) : (
@@ -176,7 +185,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="grid gap-4">
             {isLoading ? (
-                <div className="text-center text-sm text-muted-foreground py-8">Loading alerts...</div>
+                <div className="text-center text-sm text-muted-foreground py-8"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
             ) : highRiskAlerts.length > 0 ? highRiskAlerts.map(alert => (
                 <div key={alert.id} className="flex items-center gap-4 p-2 rounded-lg bg-destructive/10">
                     <div className="grid gap-1">
@@ -184,7 +193,7 @@ export default function DashboardPage() {
                             ${alert.amount.toFixed(2)} transaction from {alert.location}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                            {format(alert.createdAt, 'PP')} - Risk Score: {alert.riskScore}
+                            {format(alert.createdAt instanceof Date ? alert.createdAt : (alert.createdAt as any).toDate(), 'PP')} - Risk Score: {alert.riskScore}
                         </p>
                     </div>
                     <Button asChild size="sm" className="ml-auto">

@@ -20,13 +20,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function AlertPage({ params }: { params: { id: string } }) {
   const { user } = useAuth();
   const { firestore } = useFirebase();
-  const transactionDocRef = useMemoFirebase(() => user ? doc(firestore, `transactions/${params.id}`) : null, [firestore, user, params.id]);
+  const transactionDocRef = useMemoFirebase(() => user ? doc(firestore, `users/${user.uid}/transactions/${params.id}`) : null, [firestore, user, params.id]);
   const { data: transaction, isLoading } = useDoc<Transaction>(transactionDocRef);
   const [explanation, setExplanation] = useState('');
   const [isExplanationLoading, setIsExplanationLoading] = useState(false);
 
   useEffect(() => {
-    if (transaction && transaction.riskLevel === 'High' && transaction.userId === user?.uid) {
+    if (transaction && transaction.riskLevel === 'High') {
       setIsExplanationLoading(true);
       const getExplanation = async () => {
         const result = await explainFraudRisk({
@@ -39,13 +39,13 @@ export default function AlertPage({ params }: { params: { id: string } }) {
       };
       getExplanation();
     }
-  }, [transaction, user]);
+  }, [transaction]);
 
   if (isLoading) {
     return <Skeleton className="h-[500px] w-full" />;
   }
 
-  if (!transaction || transaction.userId !== user?.uid) {
+  if (!transaction) {
     return notFound();
   }
   

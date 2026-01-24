@@ -49,10 +49,6 @@
           "type": "string",
           "description": "Unique identifier for the transaction."
         },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User who initiated the transaction."
-        },
         "date": {
           "type": "string",
           "description": "Date and time of the transaction.",
@@ -81,7 +77,6 @@
       },
       "required": [
         "id",
-        "userId",
         "date",
         "amount",
         "location",
@@ -183,14 +178,18 @@
         }
       },
       {
-        "path": "/transactions/{transactionId}",
+        "path": "/users/{userId}/transactions/{transactionId}",
         "definition": {
           "entityName": "Transaction",
           "schema": {
             "$ref": "#/backend/entities/Transaction"
           },
-          "description": "Stores transaction data for all users in a flat collection. Each document contains a `userId` field to associate it with a user.",
+          "description": "Stores transaction data for a specific user in a subcollection. Ownership is implicitly defined by the path.",
           "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
             {
               "name": "transactionId",
               "description": "The unique identifier of the transaction."
@@ -231,6 +230,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the SecurePay Sentinel application, focusing on secure user authentication, transaction simulation, and audit logging. The key principle is using a flat, scalable structure for transactions, which simplifies global queries and security rules. Authorization is enforced by checking the `userId` field within documents against the authenticated user's ID.\n\n**User Authentication:** User profiles are stored in `/users/{userId}`. A separate `/roles_admin/{userId}` collection is used to denote admin status, which can be checked via `exists()` in security rules for admin-specific data.\n\n**Transactions:** All transactions are stored in a single, top-level `/transactions` collection. Each transaction document contains a `userId` field, linking it to the user who created it. This flat structure is highly scalable and makes it easy to write security rules that allow users to access only their own documents.\n\n**Audit Logging:** Audit logs are stored in a top-level `/auditLogs` collection. This collection is write-only from Cloud Functions, preventing direct user modification, and accessible only to admins for reading, providing a secure and auditable record of system events."
+    "reasoning": "The Firestore structure is designed to support the SecurePay Sentinel application, focusing on secure user authentication, transaction simulation, and audit logging. The key principle is using subcollections for user-specific data, which simplifies security rules and improves query performance. Authorization is enforced by the document path.\n\n**User Authentication:** User profiles are stored in `/users/{userId}`. A separate `/roles_admin/{userId}` collection is used to denote admin status, which can be checked via `exists()` in security rules for admin-specific data.\n\n**Transactions:** Transactions are stored in a `/transactions` subcollection under each user document (`/users/{userId}/transactions/{transactionId}`). This nested structure ensures that users can only ever access their own transaction data by default, as enforced by path-based security rules.\n\n**Audit Logging:** Audit logs are stored in a top-level `/auditLogs` collection. This collection is write-only from Cloud Functions, preventing direct user modification, and accessible only to admins for reading, providing a secure and auditable record of system events."
   }
 }

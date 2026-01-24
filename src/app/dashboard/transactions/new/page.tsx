@@ -125,17 +125,16 @@ export default function NewTransactionPage() {
       // =========================
       // FIRESTORE SAVE (FIXED)
       // =========================
-      const docRef = await addDoc(collection(firestore, 'transactions'), {
-        userId: user.uid, // IMPORTANT
+      const transactionsColRef = collection(firestore, `users/${user.uid}/transactions`);
+      
+      const docRef = await addDoc(transactionsColRef, {
         amount: values.amount,
         location: values.location,
         device: values.device,
-
         riskScore,
         riskLevel,
         flaggingReasons,
-
-        createdAt: serverTimestamp(), // FIXED
+        createdAt: serverTimestamp(),
       });
 
       toast({

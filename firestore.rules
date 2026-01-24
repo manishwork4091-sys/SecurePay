@@ -2,18 +2,17 @@
  * Core Philosophy: This ruleset enforces a strict security model based on user ownership and role-based access control.
  * It ensures that users can only access their own data, while administrators have specific, elevated privileges for system-wide collections.
  *
- * Data Structure: User data is stored in `/users/{userId}`. All transactions are stored in a flat `/transactions` collection, with
- * each document containing a `userId` to enforce ownership. System-level data resides in separate top-level collections.
+ * Data Structure: User data is stored in `/users/{userId}`. Transactions are stored in a subcollection at `/users/{userId}/transactions/{transactionId}`
+ * to enforce ownership at the path level. System-level data resides in separate top-level collections.
  *
  * Key Security Decisions:
- * - User Data Isolation: All collections under /users/{userId} are strictly private to the authenticated user matching that userId.
- * - Flat Transaction Structure: Transactions are stored in a top-level collection to allow for scalable queries while still being secured on a per-user basis via a `userId` field.
+ * - User Data Isolation: All collections under /users/{userId}, including transactions, are strictly private to the authenticated user matching that userId.
  * - Administrator Roles: Administrator status is determined by the existence of a document in the /roles_admin/{userId} collection. This collection is not client-accessible and must be managed via the Firebase console or a trusted backend.
  * - Immutable Audit Logs: The /auditLogs collection is read-only for administrators and cannot be written to by any client.
  *
  * Denormalization for Authorization: The /roles_admin/{userId} collection is a key example of denormalization. We perform a performant `exists()` check against this collection to determine admin privileges.
  *
- * Structural Segregation: User-private data (/users) is cleanly separated from shared data (/transactions) and system-level data (/auditLogs, /roles_admin).
+ * Structural Segregation: User-private data (/users) is cleanly separated from system-level data (/auditLogs, /roles_admin).
  */
 rules_version = '2';
 service cloud.firestore {
@@ -39,14 +38,6 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
     
-    /**
-     * isExistingOwner
-     * Checks for ownership on an existing document. Used for update and delete.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-
     /**
      * isAdmin
      * Checks if the authenticated user has an admin role document.
@@ -79,33 +70,24 @@ service cloud.firestore {
     //-------------------------------------------------------------------------
 
     /**
-     * @description   Stores user profile information. A user can create their own profile
-     *                and can only read or write their own data thereafter. Role escalation is prevented.
+     * @description   Stores user profiles and their associated subcollections.
      * @path          /users/{userId}
      */
     match /users/{userId} {
+      // A user can create their own profile and can only read or write their own data thereafter. Role escalation is prevented.
       allow get: if isOwner(userId);
-      allow list: if false;
+      allow list: if false; // Disallow listing all user profiles
       allow create: if isOwner(userId) && isCreatingOwnUserDocument(userId) && request.resource.data.role == 'user';
-      allow update: if isExistingOwner(userId) && isRoleImmutable();
-      allow delete: if isExistingOwner(userId);
-    }
-    
-    /**
-     * @description   Stores all user transactions in a flat collection.
-     *                Access is granted based on the `userId` field within each document.
-     * @path          /transactions/{transactionId}
-     */
-    match /transactions/{transactionId} {
-      // A user can create a transaction if the new document's `userId` matches their own.
-      allow create: if isOwner(request.resource.data.userId);
+      allow update: if isOwner(userId) && isRoleImmutable();
+      allow delete: if isOwner(userId);
       
-      // Users can get, update, or delete their own single transaction document.
-      allow get, update, delete: if isOwner(resource.data.userId);
-
-      // Allow any signed-in user to LIST. Security is enforced by the `get` rule
-      // and the client-side query filter, which Firestore cross-references.
-      allow list: if isSignedIn();
+      /**
+       * @description   Stores transactions for the parent user. Access is inherited from the parent user document.
+       * @path          /users/{userId}/transactions/{transactionId}
+       */
+      match /transactions/{transactionId} {
+        allow read, write: if isOwner(userId);
+      }
     }
     
     /**
@@ -115,7 +97,7 @@ service cloud.firestore {
      * @path          /roles_admin/{userId}
      */
     match /roles_admin/{userId} {
-      allow get, list, create, update, delete: if false;
+      allow read, write: if false;
     }
 
     /**
