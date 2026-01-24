@@ -1,6 +1,5 @@
 'use client';
 
-import { useAuth } from '@/context/auth-context';
 import { Transaction, RiskLevel } from '@/lib/types';
 import { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -11,8 +10,6 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Loader2, ArrowLeft, Circle } from 'lucide-react';
-import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
 
 function TransactionRow({ tx }: { tx: Transaction }) {
   const getBadgeVariant = (riskLevel: Transaction['riskLevel']) => {
@@ -65,33 +62,29 @@ const FilterFeedback = ({ filter }: { filter: RiskLevel | 'All' }) => {
 };
 
 export default function TransactionsPage() {
-  const { user } = useAuth();
-  const { firestore } = useFirebase();
   const [filter, setFilter] = useState<RiskLevel | 'All'>('All');
+  
+  // --- MOCK DATA ---
+  const allTransactions: Transaction[] = [
+      { id: 'tx_1', userId: 'user@example.com', amount: 250.00, location: 'New York, USA', device: 'Desktop', createdAt: new Date(), riskScore: 10, riskLevel: 'Low' },
+      { id: 'tx_2', userId: 'user@example.com', amount: 75.50, location: 'London, UK', device: 'Mobile', createdAt: new Date(Date.now() - 86400000), riskScore: 5, riskLevel: 'Low' },
+      { id: 'tx_3', userId: 'user@example.com', amount: 1200, location: 'Pyongyang, North Korea', device: 'Desktop', createdAt: new Date(Date.now() - 172800000), riskScore: 90, riskLevel: 'High', flaggingReasons: ['High risk location'] },
+      { id: 'tx_4', userId: 'user@example.com', amount: 600, location: 'Paris, France', device: 'Desktop', createdAt: new Date(Date.now() - 259200000), riskScore: 50, riskLevel: 'Medium' },
+      { id: 'tx_5', userId: 'user@example.com', amount: 25.00, location: 'Tokyo, Japan', device: 'Mobile', createdAt: new Date(Date.now() - 345600000), riskScore: 2, riskLevel: 'Low' },
+      { id: 'tx_6', userId: 'user@example.com', amount: 950.00, location: 'Bogota, Colombia', device: 'Mobile', createdAt: new Date(Date.now() - 572800000), riskScore: 85, riskLevel: 'High' },
+      { id: 'tx_7', userId: 'user@example.com', amount: 15.00, location: 'Sydney, Australia', device: 'Mobile', createdAt: new Date(Date.now() - 645600000), riskScore: 1, riskLevel: 'Low' },
+      { id: 'tx_8', userId: 'user@example.com', amount: 750.00, location: 'Berlin, Germany', device: 'Desktop', createdAt: new Date(Date.now() - 745600000), riskScore: 65, riskLevel: 'Medium' },
+  ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-  if (!user) {
-    return null;
-  }
-
-  const transactionsQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    const baseConditions = [where('userId', '==', user.uid)];
-    if (filter !== 'All') {
-        baseConditions.push(where('riskLevel', '==', filter));
-    }
-    return query(collection(firestore, 'transactions'), ...baseConditions, orderBy('createdAt', 'desc'));
-  }, [firestore, user, filter]);
-    
-  const { data: transactions, isLoading } = useCollection<Transaction>(transactionsQuery);
-
-  const allTransactionsQuery = useMemoFirebase(() => user ? query(collection(firestore, 'transactions'), where('userId', '==', user.uid)) : null, [firestore, user]);
-  const { data: allTransactions } = useCollection<Transaction>(allTransactionsQuery);
-
+  const transactions = filter === 'All' ? allTransactions : allTransactions.filter(tx => tx.riskLevel === filter);
+  const isLoading = false;
+  
   const riskCounts = {
-    Low: allTransactions?.filter(tx => tx.riskLevel === 'Low').length || 0,
-    Medium: allTransactions?.filter(tx => tx.riskLevel === 'Medium').length || 0,
-    High: allTransactions?.filter(tx => tx.riskLevel === 'High').length || 0,
+    Low: allTransactions.filter(tx => tx.riskLevel === 'Low').length,
+    Medium: allTransactions.filter(tx => tx.riskLevel === 'Medium').length,
+    High: allTransactions.filter(tx => tx.riskLevel === 'High').length,
   };
+  // --- END MOCK DATA ---
 
   return (
     <div className="space-y-6">
