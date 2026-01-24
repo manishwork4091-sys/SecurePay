@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await auth.signOut();
-    router.push('/login');
+    // The onAuthStateChanged listener will handle the redirect.
   };
 
   useEffect(() => {
@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const isAuthPage = pathname === '/login' || pathname === '/register';
     
-    if (firebaseUser && userProfile) {
+    if (userProfile) {
       if (isAuthPage) {
         if (userProfile.role === 'admin') {
           router.replace('/admin');
