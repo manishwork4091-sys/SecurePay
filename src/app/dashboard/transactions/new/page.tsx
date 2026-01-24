@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -19,12 +18,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { createTransaction } from "@/lib/actions";
 import { useAuth } from "@/context/auth-context";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info, ListChecks, Terminal, ArrowLeft } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
+import { useFirebase } from "@/firebase";
+import { addDoc, collection } from "firebase/firestore";
+import type { RiskLevel } from "@/lib/types";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
+import { useState } from "react";
 
 const formSchema = z.object({
   amount: z.coerce.number().min(1, { message: "Amount must be greater than $0." }),
@@ -42,6 +46,8 @@ export default function NewTransactionPage() {
   const { toast } = useToast();
   const router = useRouter();
   const { user } = useAuth();
+  const { firestore } = useFirebase();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -52,8 +58,8 @@ export default function NewTransactionPage() {
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!user) {
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!user || !firestore) {
         toast({
             variant: "destructive",
             title: "Authentication Error",
@@ -62,25 +68,71 @@ export default function NewTransactionPage() {
         return;
     }
 
-    const result = await createTransaction(values, user.uid);
+    setIsSubmitting(true);
 
-    if (result.error) {
-      toast({
-        variant: "destructive",
-        title: "Transaction Failed",
-        description: result.error,
-      });
-    } else {
-      toast({
-        title: "Transaction Submitted Successfully",
-        description: `Risk Level: ${result.riskLevel}. Redirecting to review...`,
-      });
-      if (result.riskLevel === 'High') {
-        router.push(`/dashboard/alerts/${result.transactionId}`);
-      } else {
-        router.push("/dashboard/transactions");
-      }
+    // Mocked Fraud Detection Logic
+    let riskScore = 0;
+    const flaggingReasons: string[] = [];
+
+    if (values.amount > 1000) {
+      riskScore += 40;
+      flaggingReasons.push(`Transaction amount ($${values.amount}) is unusually high.`);
     }
+
+    const unusualLocations = ['North Korea', 'Syria', 'Iran', 'Pyongyang, North Korea'];
+    if (unusualLocations.some(loc => values.location.toLowerCase().includes(loc.toLowerCase()))) {
+      riskScore += 50;
+      flaggingReasons.push(`Transaction location (${values.location}) is considered high-risk.`);
+    }
+
+    if (Math.random() < 0.1) {
+      riskScore += 20;
+      flaggingReasons.push('Transaction frequency is unusually rapid (simulated).');
+    }
+
+    riskScore = Math.min(riskScore, 100);
+
+    let riskLevel: RiskLevel;
+    if (riskScore < 40) riskLevel = 'Low';
+    else if (riskScore < 80) riskLevel = 'Medium';
+    else riskLevel = 'High';
+
+    const transactionsColRef = collection(firestore, `users/${user.uid}/transactions`);
+    
+    const newTransaction = {
+        ...values,
+        userId: user.uid,
+        createdAt: new Date(),
+        riskScore,
+        riskLevel,
+        flaggingReasons,
+    };
+
+    addDoc(transactionsColRef, newTransaction)
+      .then((docRef) => {
+        toast({
+          title: "Transaction Submitted Successfully",
+          description: `Risk Level: ${riskLevel}. Redirecting to review...`,
+        });
+        if (riskLevel === 'High') {
+          router.push(`/dashboard/alerts/${docRef.id}`);
+        } else {
+          router.push("/dashboard/transactions");
+        }
+      })
+      .catch(() => {
+        errorEmitter.emit(
+          'permission-error',
+          new FirestorePermissionError({
+            path: transactionsColRef.path,
+            operation: 'create',
+            requestResourceData: newTransaction,
+          })
+        );
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+      });
   }
 
   return (
@@ -124,7 +176,7 @@ export default function NewTransactionPage() {
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a transaction location" />
-                      </SelectTrigger>
+                      </Trigger>
                     </FormControl>
                     <SelectContent>
                       {locations.map(loc => <SelectItem key={loc} value={loc}>{loc}</SelectItem>)}
@@ -147,7 +199,7 @@ export default function NewTransactionPage() {
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a device type" />
-                      </SelectTrigger>
+                      </Trigger>
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="Desktop">Desktop</SelectItem>
@@ -172,8 +224,8 @@ export default function NewTransactionPage() {
             </Alert>
             
             <div className="flex items-center justify-between gap-4 flex-wrap">
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Processing..." : "Submit Transaction"}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Processing..." : "Submit Transaction"}
               </Button>
               <Button variant="outline" asChild>
                 <Link href="/dashboard"><ArrowLeft className="mr-2 h-4 w-4"/> Cancel & Return</Link>
