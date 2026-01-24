@@ -82,6 +82,14 @@ service cloud.firestore {
       return request.resource.data.userId == resource.data.userId;
     }
 
+    /**
+     * isRoleImmutable
+     * Ensures the role field cannot be changed by the user.
+     */
+    function isRoleImmutable() {
+      return request.resource.data.role == resource.data.role;
+    }
+
 
     //-------------------------------------------------------------------------
     // Collection Rules
@@ -89,17 +97,17 @@ service cloud.firestore {
 
     /**
      * @description   Stores user profile information. A user can create their own profile
-     *                and can only read or write their own data thereafter.
+     *                and can only read or write their own data thereafter. Role escalation is prevented.
      * @path          /users/{userId}
-     * @allow         (create) An authenticated user creating their own profile document.
+     * @allow         (create) An authenticated user creating their own profile with the 'user' role.
      * @deny          (list) Any user, including an admin, trying to list all users.
      * @principle     Enforces Self-Creation and strict Ownership of user profile data.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId) && isCreatingOwnUserDocument(userId);
-      allow update: if isExistingOwner(userId);
+      allow create: if isOwner(userId) && isCreatingOwnUserDocument(userId) && request.resource.data.role == 'user';
+      allow update: if isExistingOwner(userId) && isRoleImmutable();
       allow delete: if isExistingOwner(userId);
     }
 

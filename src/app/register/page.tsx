@@ -21,6 +21,7 @@ import { useRouter } from 'next/navigation';
 import { useFirebase } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
+import { UserProfile } from '@/lib/types';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -45,9 +46,10 @@ export default function RegisterPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
 
-      const userProfile = {
+      const userProfile: UserProfile = {
+        id: user.uid,
         uid: user.uid,
-        email: user.email,
+        email: user.email!,
         role: 'user',
         createdAt: new Date(),
         mfaEnabled: false,
