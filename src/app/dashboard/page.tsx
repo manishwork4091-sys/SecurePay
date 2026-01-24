@@ -53,6 +53,10 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const { firestore } = useFirebase();
 
+  if (!user) {
+    return null;
+  }
+
   const transactionsQuery = useMemoFirebase(() => user ? query(collection(firestore, 'transactions'), where('userId', '==', user.uid), orderBy('createdAt', 'desc')) : null, [firestore, user]);
   const { data: allTransactions, isLoading } = useCollection<Transaction>(transactionsQuery);
 

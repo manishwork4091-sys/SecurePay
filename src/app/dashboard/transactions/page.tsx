@@ -69,6 +69,10 @@ export default function TransactionsPage() {
   const { firestore } = useFirebase();
   const [filter, setFilter] = useState<RiskLevel | 'All'>('All');
 
+  if (!user) {
+    return null;
+  }
+
   const transactionsQuery = useMemoFirebase(() => {
     if (!user) return null;
     const baseConditions = [where('userId', '==', user.uid)];
