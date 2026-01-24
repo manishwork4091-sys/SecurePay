@@ -21,6 +21,7 @@ import { useFirebase } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { UserProfile } from '@/lib/types';
+import { useRouter } from 'next/navigation';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -30,6 +31,7 @@ const formSchema = z.object({
 export default function RegisterPage() {
   const { toast } = useToast();
   const { auth, firestore } = useFirebase();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -59,7 +61,7 @@ export default function RegisterPage() {
         title: 'Registration Successful',
         description: 'Redirecting to your dashboard...',
       });
-      // The AuthProvider will handle the redirect.
+      router.replace('/dashboard');
     } catch (error: any) {
       toast({
         variant: 'destructive',

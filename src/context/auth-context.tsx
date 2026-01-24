@@ -42,29 +42,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await auth.signOut();
-    // The onAuthStateChanged listener will handle the redirect.
+    router.replace('/login');
   };
 
   useEffect(() => {
     if (loading) return;
 
-    const isAuthPage = pathname === '/login' || pathname === '/register';
-    
-    if (userProfile) {
-      if (isAuthPage) {
-        if (userProfile.role === 'admin') {
-          router.replace('/admin');
-        } else {
-          router.replace('/dashboard');
-        }
-      }
-    } else if (!firebaseUser) {
-      const isProtectedRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/admin');
-      if (isProtectedRoute) {
+    // Only redirect unauthenticated users from protected routes.
+    // Redirection after login/registration is handled by the respective pages.
+    const isProtectedRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/admin');
+    if (!userProfile && isProtectedRoute) {
         router.replace('/login');
-      }
     }
-  }, [firebaseUser, userProfile, loading, pathname, router]);
+    
+  }, [userProfile, loading, pathname, router]);
+
 
   const value = {
     user: userProfile,
