@@ -80,7 +80,7 @@ export default function TransactionsPage() {
     
   const { data: transactions, isLoading } = useCollection<Transaction>(transactionsQuery);
 
-  const allTransactionsQuery = useMemoFirebase(() => user ? query(collection(firestore, `transactions`), where('userId', '==', user.uid)) : null, [firestore, user]);
+  const allTransactionsQuery = useMemoFirebase(() => user ? query(collection(firestore, 'transactions'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: allTransactions } = useCollection<Transaction>(allTransactionsQuery);
 
   const riskCounts = {
