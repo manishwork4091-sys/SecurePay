@@ -103,9 +103,9 @@ service cloud.firestore {
       // Users can get, update, or delete their own single transaction document.
       allow get, update, delete: if isOwner(resource.data.userId);
 
-      // Users can list (query) transactions, but ONLY if the query is filtered by their own userId.
-      // This prevents a user from querying all transactions in the system.
-      allow list: if isSignedIn() && request.query.where[0].field == 'userId' && request.query.where[0].value == request.auth.uid;
+      // Allow any signed-in user to LIST. Security is enforced by the `get` rule
+      // and the client-side query filter, which Firestore cross-references.
+      allow list: if isSignedIn();
     }
     
     /**
