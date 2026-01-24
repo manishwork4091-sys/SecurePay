@@ -17,7 +17,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import Link from 'next/link';
 import { Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
 import { useFirebase } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
@@ -30,7 +29,6 @@ const formSchema = z.object({
 
 export default function RegisterPage() {
   const { toast } = useToast();
-  const router = useRouter();
   const { auth, firestore } = useFirebase();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -59,9 +57,9 @@ export default function RegisterPage() {
 
       toast({
         title: 'Registration Successful',
-        description: 'You can now log in.',
+        description: 'Redirecting to your dashboard...',
       });
-      router.push('/login');
+      // The AuthProvider will handle the redirect.
     } catch (error: any) {
       toast({
         variant: 'destructive',
