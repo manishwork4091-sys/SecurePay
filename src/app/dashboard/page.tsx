@@ -2,7 +2,6 @@
 
 import { useAuth } from '@/context/auth-context';
 import { Transaction } from '@/lib/types';
-import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -19,8 +18,6 @@ import {
     CheckCircle,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
 
 function TransactionRow({ tx }: { tx: Transaction }) {
   const getBadgeVariant = (riskLevel: Transaction['riskLevel']) => {
@@ -51,41 +48,36 @@ function TransactionRow({ tx }: { tx: Transaction }) {
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { firestore } = useFirebase();
-
+  
   if (!user) {
-    return null;
+    return null; // Or a loading spinner
   }
 
-  const transactionsQuery = useMemoFirebase(() => user ? query(collection(firestore, 'transactions'), where('userId', '==', user.uid), orderBy('createdAt', 'desc')) : null, [firestore, user]);
-  const { data: allTransactions, isLoading } = useCollection<Transaction>(transactionsQuery);
+  // --- MOCK DATA ---
+  const mockTransactions: Transaction[] = [
+      { id: 'tx_1', userId: 'user@example.com', amount: 250.00, location: 'New York, USA', device: 'Desktop', createdAt: new Date(), riskScore: 10, riskLevel: 'Low' },
+      { id: 'tx_2', userId: 'user@example.com', amount: 75.50, location: 'London, UK', device: 'Mobile', createdAt: new Date(Date.now() - 86400000), riskScore: 5, riskLevel: 'Low' },
+      { id: 'tx_3', userId: 'user@example.com', amount: 1200, location: 'Pyongyang, North Korea', device: 'Desktop', createdAt: new Date(Date.now() - 172800000), riskScore: 90, riskLevel: 'High', flaggingReasons: ['High risk location'] },
+      { id: 'tx_4', userId: 'user@example.com', amount: 600, location: 'Paris, France', device: 'Desktop', createdAt: new Date(Date.now() - 259200000), riskScore: 50, riskLevel: 'Medium' },
+      { id: 'tx_5', userId: 'user@example.com', amount: 25.00, location: 'Tokyo, Japan', device: 'Mobile', createdAt: new Date(Date.now() - 345600000), riskScore: 2, riskLevel: 'Low' },
+      { id: 'tx_6', userId: 'user@example.com', amount: 950.00, location: 'Bogota, Colombia', device: 'Mobile', createdAt: new Date(Date.now() - 572800000), riskScore: 85, riskLevel: 'High' },
+  ];
 
-  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
-  const [highRiskAlerts, setHighRiskAlerts] = useState<Transaction[]>([]);
-  const [stats, setStats] = useState({
-      totalTx: 0,
-      highRiskAlerts: 0,
-      mediumRiskTx: 0,
-      fraudRate: 0,
-  });
-
-  useEffect(() => {
-    if (allTransactions) {
-      const highRisk = allTransactions.filter(tx => tx.riskLevel === 'High');
-      const mediumRisk = allTransactions.filter(tx => tx.riskLevel === 'Medium');
-      
-      setRecentTransactions(allTransactions.slice(0, 5));
-      setHighRiskAlerts(highRisk.slice(0, 3));
-      
-      setStats({
-          totalTx: allTransactions.length,
-          highRiskAlerts: highRisk.length,
-          mediumRiskTx: mediumRisk.length,
-          fraudRate: allTransactions.length > 0 ? (highRisk.length / allTransactions.length) * 100 : 0,
-      });
-    }
-  }, [allTransactions]);
+  const highRisk = mockTransactions.filter(tx => tx.riskLevel === 'High');
+  const mediumRisk = mockTransactions.filter(tx => tx.riskLevel === 'Medium');
   
+  const recentTransactions = mockTransactions.slice(0, 5);
+  const highRiskAlerts = highRisk.slice(0, 3);
+  
+  const stats = {
+      totalTx: mockTransactions.length,
+      highRiskAlerts: highRisk.length,
+      mediumRiskTx: mediumRisk.length,
+      fraudRate: mockTransactions.length > 0 ? (highRisk.length / mockTransactions.length) * 100 : 0,
+  };
+  const isLoading = false;
+  // --- END MOCK DATA ---
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex justify-between items-start flex-wrap gap-4">
@@ -192,7 +184,7 @@ export default function DashboardPage() {
                             ${alert.amount.toFixed(2)} transaction from {alert.location}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                            {format((alert.createdAt as any).toDate(), 'PP')} - Risk Score: {alert.riskScore}
+                            {format(alert.createdAt, 'PP')} - Risk Score: {alert.riskScore}
                         </p>
                     </div>
                     <Button asChild size="sm" className="ml-auto">
