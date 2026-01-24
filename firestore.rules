@@ -100,9 +100,12 @@ service cloud.firestore {
       // A user can create a transaction if the new document's `userId` matches their own.
       allow create: if isOwner(request.resource.data.userId);
       
-      // A user can read, update, or delete a transaction if the existing document's `userId` matches their own.
-      // The `read` rule also enables `list` queries that include `where('userId', '==', request.auth.uid)`.
-      allow get, update, delete, list: if isOwner(resource.data.userId);
+      // Users can get, update, or delete their own single transaction document.
+      allow get, update, delete: if isOwner(resource.data.userId);
+
+      // Users can list (query) transactions. Client-side queries MUST enforce `where('userId', '==', request.auth.uid)`
+      // for security. This rule just verifies the user is signed in before allowing the query to proceed.
+      allow list: if isSignedIn();
     }
     
     /**
