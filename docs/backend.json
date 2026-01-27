@@ -11,6 +11,10 @@
           "description": "Unique identifier for the user.",
           "format": "uuid"
         },
+        "name": {
+          "type": "string",
+          "description": "User's full name."
+        },
         "email": {
           "type": "string",
           "description": "User's email address.",
@@ -33,6 +37,7 @@
       },
       "required": [
         "id",
+        "name",
         "email",
         "role",
         "mfaEnabled",

@@ -16,8 +16,12 @@ export default function ProfilePage() {
         return null; // Or a loading state, though AuthGuard should handle this.
     }
 
-    const getInitials = (email: string) => {
-        return email.substring(0, 2).toUpperCase();
+    const getInitials = (name: string) => {
+        const names = name.split(' ');
+        if (names.length > 1) {
+            return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+        }
+        return name.substring(0, 2).toUpperCase();
     }
     
     const userRole = user.role.charAt(0).toUpperCase() + user.role.slice(1);
@@ -34,11 +38,11 @@ export default function ProfilePage() {
                 <CardHeader>
                     <div className="flex items-start gap-6">
                         <Avatar className="h-20 w-20 border-2 border-primary">
-                            <AvatarImage src={`https://avatar.vercel.sh/${user.email}.png`} alt={user.email} />
-                            <AvatarFallback className="text-2xl">{getInitials(user.email)}</AvatarFallback>
+                            <AvatarImage src={`https://avatar.vercel.sh/${user.email}.png`} alt={user.name} />
+                            <AvatarFallback className="text-2xl">{getInitials(user.name)}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
-                            <CardTitle className="font-headline text-2xl">Student User</CardTitle>
+                            <CardTitle className="font-headline text-2xl">{user.name}</CardTitle>
                             <CardDescription className="flex items-center gap-2 mt-2">
                                 <Mail className="h-4 w-4" />
                                 {user.email}

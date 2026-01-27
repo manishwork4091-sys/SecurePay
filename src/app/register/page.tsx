@@ -24,6 +24,7 @@ import { UserProfile } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 
 const formSchema = z.object({
+  name: z.string().min(2, { message: 'Name is required.' }),
   email: z.string().email({ message: 'Invalid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
 });
@@ -36,6 +37,7 @@ export default function RegisterPage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      name: '',
       email: '',
       password: '',
     },
@@ -49,6 +51,7 @@ export default function RegisterPage() {
       const userProfile: UserProfile = {
         id: user.uid,
         uid: user.uid,
+        name: values.name,
         email: user.email!,
         role: 'user',
         createdAt: new Date(),
@@ -85,6 +88,19 @@ export default function RegisterPage() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="John Doe" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="email"

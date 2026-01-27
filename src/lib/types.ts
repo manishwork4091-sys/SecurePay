@@ -2,6 +2,7 @@ export interface UserProfile {
   id: string;
   uid: string;
   email: string;
+  name: string;
   role: 'user' | 'admin';
   createdAt: Date;
   mfaEnabled: boolean;
