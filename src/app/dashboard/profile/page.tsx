@@ -10,10 +10,10 @@ import { format, subDays } from 'date-fns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function ProfilePage() {
-    const { user } = useAuth();
+    const { user, firebaseUser } = useAuth();
 
-    if (!user) {
-        return null; // Or a loading state
+    if (!user || !firebaseUser) {
+        return null; // Or a loading state, though AuthGuard should handle this.
     }
 
     const getInitials = (email: string) => {
@@ -24,6 +24,8 @@ export default function ProfilePage() {
 
     // Convert Firestore Timestamp to Date if necessary
     const createdAtDate = user.createdAt instanceof Date ? user.createdAt : (user.createdAt as any).toDate();
+
+    const lastSignInDate = firebaseUser.metadata.lastSignInTime ? new Date(firebaseUser.metadata.lastSignInTime) : new Date();
 
     return (
         <div className="space-y-6">
@@ -64,7 +66,7 @@ export default function ProfilePage() {
                                 <Calendar className="h-5 w-5 text-muted-foreground" />
                                 <div>
                                     <p className="text-muted-foreground">Last Login</p>
-                                    <p className="font-medium">{format(new Date(), 'PPpp')}</p>
+                                    <p className="font-medium">{format(lastSignInDate, 'PPpp')}</p>
                                 </div>
                             </div>
                         </div>
